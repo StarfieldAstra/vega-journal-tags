@@ -16,15 +16,32 @@
 
 | 标签 | 含义 |
 |---|---|
-| `CSSCI+CSCD` | **双库收录** —— 同时是 CSSCI 来源版与 CSCD 核心库。紫色渐变，全插件最醒目 |
+| `CSSCI+CSCD` | **双库收录** —— 同时是 CSSCI 来源版与 CSCD 核心库。实色渐变，全插件最醒目 |
 | `CSSCI` / `CSSCI扩展` | CSSCI（中文社会科学引文索引）来源版 / 扩展版，2025–2026 |
 | `CSCD` / `CSCD扩展` | CSCD（中国科学引文数据库）核心库 / 扩展库，2025–2026 |
 | `北核` | 北京大学《中文核心期刊要目总览》 |
 | `中科院1区` … `中科院4区` | 中科院文献情报中心期刊分区表大类分区（2025 年版终版） |
-| `中科院1区·Top` | 该刊同时是 Top 期刊（Top 并入同一标签文字，不单独占位，避免在窄列被挤掉） |
+| `★Top` | 该刊同时入选分区表 **Top 期刊**，以 ★ 挂在分区标签上（1 区全部是 Top；2 区约 12% 择优入选；3、4 区不设） |
 | `预警` | 曾列入中科院《国际期刊预警名单》，点击标签可看年份与原因 |
 
 点击任一标签，展开详情：ISSN、学科、收录库、**中科院小类分区**明细、WOS 收录类型、预警年份与原因。
+
+> **为什么 2 区也可能带 ★Top？** 中科院的官方规则是「1 区期刊全部进 Top，2 区择优进 Top」。所以本插件对**任何分区**都显示 ★Top —— 曾经以为只有 1 区才有，核对源数据后发现 2 区有 338 本 Top（如 ADDICTION、Advanced Healthcare Materials），1 区则是 1451/1451 全量入选。
+
+## 六套配色，随时切换
+
+弹窗里点一下即换，已打开的页面**不用刷新**瞬间变色。全部配色由脚本按 **WCAG 对比度 ≥ 4.5:1** 现算生成，视觉重量对齐：
+
+| 色卡 | 风格 | 色源 |
+|---|---|---|
+| Vega 默认 | iOS 语义淡彩 | iOS Human Interface Guidelines |
+| Nord 晨雾 | 低饱和冷调 | 变色库 #6 + Nord Aurora |
+| 清泉 | 通透蓝绿 | 变色库 #36 + #37 |
+| 沙丘暖阳 | 大地暖色 | 变色库 #4 + #14 |
+| 素墨 | 近灰度、最安静 | 变色库 #20 去饱和改写 |
+| 墨黑夜航 | 黑底亮字，与 logo 同语言 | 黑底重制版 |
+
+「变色库 #N」指科研绘图配色库 `references/color_schemes.py` 里的第 N 套，见 `tools/build_themes.js`。
 
 ## 它不显示什么
 
@@ -70,9 +87,11 @@
 ## 开发
 
 ```bash
-node validate.js      # 发布前静态校验（249 项：manifest / MV3 资源声明 / match pattern / 残留词 / 样式一致性）
-node test_judge.js    # 判定引擎单元测试（61 项）
-node build_release.js # 隐私扫描 + 生成 release/（打包需手动跑 7z）
+node validate.js           # 发布前静态校验（491 项：manifest / MV3 资源声明 / match pattern / 残留词 / 配色一致性）
+node test_judge.js         # 判定引擎单元测试（89 项，含 Top 分布回归）
+node tools/build_themes.js # 改配色后重生成 core/themes.js（自动反解 alpha 与文字色、输出对比度报告）
+node tools/make_logo.js    # 重生成全部尺寸 logo（纯 Node 栅格化，无第三方依赖）
+node build_release.js      # 隐私扫描 + 生成 release/（打包需手动跑 7z）
 ```
 
 数据集由 `tools/slim_data.py` 从完整版数据集瘦身而来（剔除校内专用字段）：
@@ -88,6 +107,9 @@ python tools/slim_data.py <源 journals.json>
 3. **标签要放进一个 block/flex 容器**（`.vega-tagline`），不能直接作为刊名的兄弟节点 —— 否则会跟着刊名文字流走，刊名短的在同一行、长的被挤到第二行，参差不齐。
 4. **CSSCI 与 CSCD 必须合并成一个标签。** 拆成两个时，在知网这类窄列里第二个常被 `overflow:hidden` 裁掉，看起来就像"少了一个库"。
 5. **所有标签的尺寸属性要全部统一**：`height / font-size / border-radius / padding / font-weight / letter-spacing`。字重与字距也会影响渲染宽度，只统一字号和高度是不够的。
+6. **配色只能有一份事实来源。** 页面标签、弹窗图例、说明页示例三处都从 `core/themes.js` 取色 —— 曾经三处各写一份 hex，换色时漏改一处，出现"图例是一种颜色、标签是另一种"。`validate.js` 现在会核对 `:root` 默认值与默认色卡逐项一致。
+7. **star 星形别用二次贝塞尔拼。** 从尖端到尖端的贝塞尔，腰部最细只能到 ~0.35R，出来永远是圆角菱形。要星芒感得用幂函数曲线 `|x/R|^p + |y/R|^p = 1`（p 越小越锐），见 `tools/make_logo.js`。
+8. **别依赖 chrome.storage 回调的异步性。** 初始化逻辑要放在 IIFE 末尾、所有定义之后 —— 否则哪天回调同步执行（或测试里 mock 成同步），就会踩"用到还没初始化的 const"的雷。
 
 ## 许可
 

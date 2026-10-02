@@ -10,9 +10,10 @@
   if (window.__vegaLoaded) return;
   window.__vegaLoaded = true;
 
-  // judge.js 与 sites/index.js 由 manifest 按序注入
+  // judge.js / themes.js / sites/index.js 由 manifest 按序注入
   const { buildIndex, judge, hasSignal } = window.VegaJudge || {};
   const { resolveSite } = window.VegaSites || {};
+  const Themes = window.VegaThemes || {};
 
   if (!judge || !resolveSite) {
     console.warn('[Vega] 依赖未就绪');
@@ -24,6 +25,33 @@
   let SITE = null;
   let enabled = true;
   let injected = new WeakSet(); // 防止同一元素重复注入（rerenderAll 时会重置）
+
+  // ------------------------------------------------------------ 配色
+  /**
+   * 主题只改 :root 上的一组 CSS 变量，不重渲染 DOM。
+   * 好处：用户在弹窗里点一下换色，当前页几百个标签瞬间变色，不用刷新，
+   *      也不会因为重渲染而丢失「已点开的浮层」之类的临时状态。
+   */
+  let curTheme = Themes.DEFAULT_THEME || 'vega';
+
+  function setTheme(id) {
+    if (!Themes.applyTheme) return;
+    try {
+      Themes.applyTheme(document.documentElement, id);
+      curTheme = id;
+    } catch (e) {
+      /* 页面禁用 inline style 时静默降级为默认配色 */
+    }
+  }
+  try {
+    chrome.storage.local.get({ theme: Themes.DEFAULT_THEME || 'vega' }, (st) => {
+      setTheme(st && st.theme);
+    });
+    // 弹窗里换色即时生效
+    chrome.storage.onChanged.addListener((chg, area) => {
+      if (area === 'local' && chg && chg.theme) setTheme(chg.theme.newValue);
+    });
+  } catch (e) { /* storage 不可用时用默认配色 */ }
 
   // ------------------------------------------------------------ 数据加载
   /**
@@ -116,10 +144,24 @@
   }
 
   // ------------------------------------------------------------ 标签渲染
-  function makeTag(text, kind, title) {
+  /**
+   * 生成标签元素。
+   * Top 的那颗 ★ 做成独立 span 而不是写进文本流：这样配色变量
+   * --vega-star 能单独改它的颜色，也方便日后换成别的字形。
+   */
+  function makeTag(text, kind, title, isTop) {
     const el = document.createElement('span');
     el.className = NS + '-tag ' + NS + '-' + kind;
-    el.textContent = text;
+    if (isTop && text.endsWith('·Top')) {
+      el.appendChild(document.createTextNode(text.slice(0, -4)));
+      const s = document.createElement('span');
+      s.className = NS + '-star';
+      s.textContent = '★';
+      el.appendChild(s);
+      el.appendChild(document.createTextNode('Top'));
+    } else {
+      el.textContent = text;
+    }
     if (title) el.title = title;
     el.setAttribute('data-vega', '1');
     return el;
@@ -167,7 +209,7 @@
         html += popRow(
           '中科院',
           '大类 ' + esc(rec.M || '—') + ' <b>' + esc(rec.z) + ' 区</b>' +
-            (rec.T ? ' <span style="color:#B45309;font-weight:600">Top</span>' : '')
+            (rec.T ? ' <span class="' + NS + '-pop-top"><span class="' + NS + '-star">★</span> Top</span>' : '')
         );
         const minors = CTX.detail && CTX.detail[res.key];
         if (minors && minors.length) {
@@ -271,7 +313,7 @@
     line.setAttribute('data-vega-line', '1');   // 容器单独标记，避免与标签混算
 
     for (const b of res.badges) {
-      const t = makeTag(b.t, b.k, b.t);
+      const t = makeTag(b.t, b.k, b.t, !!b.top);
       t.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();

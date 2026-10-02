@@ -16,11 +16,63 @@
       .replace(/"/g, '&quot;');
   }
 
+  const Themes = window.VegaThemes || {};
+
+  // ------------------------------------------------------------ 标签配色
+  /**
+   * 色值不再写死在这里 —— 全部取自 core/themes.js，映射表也直接用它的 ROLE。
+   * 图例必须跟页面上的标签用同一份数据，否则会出现「图例是这色、
+   * 实际标签是另一色」这种最难排查的不一致。
+   */
+  const ROLE = Themes.ROLE || {};
+
+  let curTheme = Themes.DEFAULT_THEME || 'vega';
+
+  // 预览条：挑这套色卡里最有代表性的 6 枚，冷暖浓淡一眼看得出
+  const PREVIEW = ['both', 'cssci', 'beike', 'cas1', 'cas2', 'cas3'];
+
+  function renderThemePicker() {
+    const box = $('themes');
+    if (!box || !Themes.THEMES) return;
+    box.innerHTML = Themes.THEMES.map((t) => {
+      const bars = PREVIEW.map((r) => '<i style="background:' + t.css[r].bg + '"></i>').join('');
+      return (
+        '<button class="th" type="button" data-id="' + esc(t.id) + '" ' +
+        'aria-pressed="' + (t.id === curTheme ? 'true' : 'false') + '">' +
+        '<span class="th-bar">' + bars + '</span>' +
+        '<span class="th-nm">' + esc(t.name) + '</span></button>'
+      );
+    }).join('');
+
+    box.querySelectorAll('.th').forEach((b) => {
+      b.addEventListener('click', () => pickTheme(b.getAttribute('data-id')));
+    });
+    showThemeDesc();
+  }
+
+  function showThemeDesc() {
+    const t = Themes.getTheme ? Themes.getTheme(curTheme) : null;
+    if (!t) return;
+    $('themeDesc').innerHTML =
+      '<b>' + esc(t.name) + '</b> · ' + esc(t.desc) + '<br>' +
+      '<span style="color:var(--gray2)">色源：' + esc(t.source) + '</span>';
+  }
+
+  function pickTheme(id) {
+    curTheme = id;
+    chrome.storage.local.set({ theme: id }, () => {
+      renderThemePicker();
+      renderLegend();
+      // 已经打开的标签页里的内容脚本会自己监听 storage.onChanged 换装，
+      // 不需要重扫，也不必刷新页面。
+    });
+  }
+
   // ------------------------------------------------------------ 标签图例
-  // 样式须与 style.css 的 .vega-<key> 保持一致（validate.js 会校验两边都存在）
+  // 文字与 style.css 的 .vega-<key> 一一对应（validate.js 会校验两边不脱节）
   const LEGEND = [
     { t: 'CSSCI+CSCD', k: 'both-core' },
-    { t: 'CSSCI扩展+CSCD', k: 'both-mixed' },
+    { t: 'CSSCI+CSCD 混合', k: 'both-mixed' },
     { t: 'CSSCI', k: 'cssci-source' },
     { t: 'CSSCI扩展', k: 'cssci-ext' },
     { t: 'CSCD', k: 'cscd-core' },
@@ -33,24 +85,37 @@
     { t: '预警', k: 'warning' },
   ];
 
-  const LEGEND_STYLE = {
-    'both-core': 'background:linear-gradient(135deg,#af52de 0%,#d42aa4 100%);color:#fff;font-weight:600',
-    'cssci-source': 'background:rgba(255,204,0,.38);color:#5C4300',
-    'cssci-ext': 'background:rgba(255,204,0,.24);color:#6B5200',
-    'cscd-core': 'background:rgba(142,142,147,.38);color:#1C1C1E',
-    'cscd-ext': 'background:rgba(142,142,147,.24);color:#2C2C2E',
-    'beike': 'background:rgba(0,122,255,.30);color:#004E9C',
-    'cas-1': 'background:rgba(255,59,48,.32);color:#A3121A',
-    'cas-2': 'background:rgba(255,149,0,.34);color:#8F4000',
-    'cas-3': 'background:rgba(48,176,199,.36);color:#005A66',
-    'cas-4': 'background:rgba(142,142,147,.36);color:#2C2C2E',
-    'warning': 'background:rgba(255,59,48,.34);color:#A3121A;font-weight:600',
-  };
+  function renderLegend() {
+    const el = $('legend');
+    if (!el) return;
+    const t = Themes.getTheme ? Themes.getTheme(curTheme) : null;
+    const css = t ? t.css : {};
+    let html = LEGEND.map((b) => {
+      const v = css[ROLE[b.k]];
+      if (!v) return '';
+      let label = esc(b.t);
+      let style = 'background:' + v.bg + ';color:' + v.fg;
+      if (b.k === 'warning') style += ';font-weight:600';
+      if (b.k === 'both-core' || b.k === 'both-mixed') style += ';font-weight:600';
+      return '<span class="chip" style="' + style + '">' + label + '</span>';
+    }).join('');
 
-  $('legend').innerHTML = LEGEND.map(
-    (b) =>
-      '<span class="chip" style="' + (LEGEND_STYLE[b.k] || '') + '">' + esc(b.t) + '</span>'
-  ).join('');
+    // Top 用星标单独说明：它不是第 13 类标签，而是挂在分区标签上的标记
+    if (t) {
+      html +=
+        '<span class="chip" style="background:' + css.cas2.bg + ';color:' + css.cas2.fg + '">' +
+        '中科院2区 <span style="color:' + t.css.star + ';font-weight:600">★</span>Top</span>';
+    }
+    el.innerHTML = html;
+
+    const note = $('legendNote');
+    if (note) {
+      note.innerHTML =
+        '<b>★ Top</b> 是中科院「期刊分区表」的 Top 标记，不是第四类等次：' +
+        '<b>1 区按官方规则全部是 Top</b>，2 区约 12%（338 / 2844）为 Top，3、4 区没有。' +
+        '所以本插件对任何分区都显示 ★Top，不只是 1 区。';
+    }
+  }
 
   // ------------------------------------------------------------ 开关
   const cb = $('enabled');
@@ -205,4 +270,13 @@
         '<br>请到扩展管理页确认 manifest.json 的 web_accessible_resources 仍包含 ' +
         'data/journals.json，然后点「重新加载」扩展。';
     });
+
+  // ------------------------------------------------------------ 初始化
+  // 放在 IIFE 末尾：所有函数都已定义，不依赖 chrome.storage 回调的异步性
+  // —— 哪怕哪天回调变成同步的，也不会踩「用到还没初始化的 const」这种雷。
+  chrome.storage.local.get({ theme: Themes.DEFAULT_THEME || 'vega' }, (st) => {
+    if (st && st.theme) curTheme = st.theme;
+    renderThemePicker();
+    renderLegend();
+  });
 })();

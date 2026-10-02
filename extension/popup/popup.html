@@ -99,6 +99,38 @@
   .sw input:checked + .tr + .kn { transform: translateX(20px); }
   .sw input:focus-visible + .tr { box-shadow: 0 0 0 3.5px rgba(0,122,255,0.28); }
 
+  /* ---- 标签配色选择 ---- */
+  .themes {
+    display: flex; gap: 8px; padding: 12px 13px; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .themes::-webkit-scrollbar { display: none; }
+  .th {
+    flex: 0 0 auto; width: 74px; padding: 0; cursor: pointer;
+    background: none; border: none; font-family: inherit; text-align: center;
+  }
+  /* 预览：把这套色卡里最有代表性的几枚做成小色块，
+     一眼能看出冷暖与浓淡，不用逐个点开试 */
+  .th-bar {
+    display: flex; overflow: hidden; height: 26px;
+    border-radius: 7px; border: 1.5px solid transparent;
+    transition: border-color 0.15s ease, transform 0.12s ease;
+  }
+  .th-bar i { flex: 1; min-width: 0; }
+  .th-nm {
+    display: block; margin-top: 5px; font-size: 11px; line-height: 1.3;
+    color: var(--label); letter-spacing: -0.1px;
+  }
+  .th[aria-pressed="true"] .th-bar { border-color: var(--blue); }
+  .th[aria-pressed="true"] .th-nm { color: var(--blue); font-weight: 600; }
+  .th:hover .th-bar { transform: translateY(-1px); }
+  .th:focus-visible .th-bar { border-color: var(--blue); }
+
+  .theme-desc {
+    padding: 0 13px 12px; font-size: 11.5px; line-height: 1.55; color: var(--gray);
+  }
+  .theme-desc b { font-weight: 600; color: var(--label); }
+
   /* ---- 收录标签图例 ---- */
   .legend {
     display: flex; flex-wrap: wrap; gap: 5px;
@@ -207,10 +239,18 @@
     </div>
   </div>
 
+  <!-- 标签配色 -->
+  <div class="group-t">标签配色</div>
+  <div class="group">
+    <div class="themes" id="themes"></div>
+    <div class="theme-desc" id="themeDesc"></div>
+  </div>
+
   <!-- 收录类型图例 -->
   <div class="group-t">标签图例</div>
   <div class="group">
     <div class="legend" id="legend"></div>
+    <div class="theme-desc" id="legendNote"></div>
   </div>
 
   <button id="rescan" class="btn primary">重新扫描当前页面</button>
@@ -229,6 +269,7 @@
 
 </div>
 
+<script src="../core/themes.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

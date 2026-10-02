@@ -24,6 +24,41 @@ function section(t) { console.log('\n─── ' + t + ' ' + '─'.repeat(Math.m
 function read(rel) { return fs.readFileSync(path.join(EXT, rel), 'utf8'); }
 function exists(rel) { return fs.existsSync(path.join(EXT, rel)); }
 
+const Themes = require('./extension/core/themes.js');
+
+// ------------------------------------------------------ 颜色工具（校验配色用）
+/** 把 "rgba(r,g,b,a)" / "#rrggbb" 解析为 [r,g,b]，rgba 需知道它叠在什么底色上 */
+function parseColor(s, underWhite) {
+  const m = String(s).match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
+  if (m) {
+    const a = m[4] == null ? 1 : parseFloat(m[4]);
+    const c = [+m[1], +m[2], +m[3]];
+    if (a >= 0.999) return c;
+    // 实际观感取决于它叠在什么上；默认 Primitive pallet 是白底网页
+    const bg = underWhite === false ? [16, 17, 20] : [255, 255, 255];
+    return c.map((v, i) => v * a + bg[i] * (1 - a));
+  }
+  const h = String(s).replace('#', '');
+  if (h.length === 6) {
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  return [0, 0, 0];
+}
+function relLum(c) {
+  const f = (v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+}
+/** 标签底色（可能半透明）叠在网页底色上之后，与文字色的 WCAG 对比度 */
+function contrast(bgStr, fgStr, dark) {
+  const bg = parseColor(bgStr, dark ? false : true);
+  const fg = parseColor(fgStr, false);
+  const l1 = relLum(bg), l2 = relLum(fg);
+  return +((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)).toFixed(2);
+}
+
 // ---------------------------------------------------------------- 1. manifest
 section('manifest.json');
 let manifest = null;
@@ -137,7 +172,9 @@ section('残留校内/隐私词');
   const extraPattern = process.env.SXF_PRIVACY_PATTERN || '';
 
   const BUILTIN = [
-    '山财', '山西财经', '主办单位', '国家级学术刊物', '附件1', '附件 1',
+    // 只放「通用 institutional 用语」，具体校名一律走 SXF_PRIVACY_TERMS 注入，
+    // 不写进仓库 —— 扫描器本身是要公开的，写死等于自我泄露。
+    '主办单位', '国家级学术刊物', '附件1', '附件 1',
     '科研成果管理办法', '校级', '本校', 'A3 认定', 'A3认定',
   ];
   const terms = [...BUILTIN, ...extraTerms];
@@ -190,9 +227,82 @@ section('样式与标签一致性');
   for (const k of BADGE_KEYS) {
     ok(css.includes('.vega-' + k), `style.css 含 .vega-${k}`);
   }
-  // 双库必须是渐变（最醒目）
-  const both = css.match(/\.vega-both-core\s*\{[^}]*\}/)?.[0] || '';
-  ok(/linear-gradient/.test(both), '.vega-both-core 使用渐变');
+  // 双库必须是渐变（最醒目）——渐变本体现在住在 --vega-both-bg 变量里
+  const bothVar = css.match(/--vega-both-bg:\s*([^;]+);/)?.[1] || '';
+  ok(/linear-gradient/.test(bothVar), '默认主题的 --vega-both-bg 是渐变');
+  ok(/var\(--vega-both-bg\)/.test(css), '.vega-both-core 引用渐变变量');
+
+  // 所有标签的配色必须走变量，不允许再有写死的 rgba/#hex
+  // 曾经因为一处硬编码，换了色卡那一个标签不变色，很难发现。
+  for (const k of BADGE_KEYS) {
+    const block = css.match(new RegExp('\\.vega-' + k + '\\s*\\{[^}]*\\}'))?.[0] || '';
+    const role = (Themes.ROLE || {})[k];
+    const vn = Themes.varName ? Themes.varName(role) : null;
+    if (!vn) { ok(false, `${k} 在 themes.js ROLE 表中缺失`); continue; }
+    ok(block.includes('var(' + vn + '-bg)'), `.vega-${k} 底色走变量 ${vn}-bg`);
+    ok(block.includes('var(' + vn + '-fg)'), `.vega-${k} 文字色走变量 ${vn}-fg`);
+  }
+}
+
+// ---------------------------------------------------------------- 7b. 配色主题
+section('配色主题');
+{
+  const cssText = read('style.css');
+  const { BADGE_KEYS } = require('./extension/core/judge.js');
+
+  ok(Array.isArray(Themes.THEMES) && Themes.THEMES.length >= 3,
+    `至少提供 3 套色卡（当前 ${Themes.THEMES.length} 套）`);
+  ok(!!Themes.getTheme(Themes.DEFAULT_THEME), `默认色卡 ${Themes.DEFAULT_THEME} 存在`);
+
+  const ids = new Set();
+  for (const t of Themes.THEMES) {
+    ok(!ids.has(t.id), `色卡 id 唯一：${t.id}`);
+    ids.add(t.id);
+    ok(!!t.name && !!t.desc && !!t.source, `色卡 ${t.id} 有名称/说明/色源`);
+    ok(t.mode === 'light' || t.mode === 'dark', `色卡 ${t.id} 的 mode 合法`);
+
+    // 每个 badge 都要能在这套色卡里查到颜色
+    for (const k of BADGE_KEYS) {
+      const role = (Themes.ROLE || {})[k];
+      const v = role && t.css[role];
+      ok(!!(v && v.bg && v.fg), `色卡 ${t.id} 覆盖 ${k}`);
+    }
+    ok(/^#[0-9A-Fa-f]{6}$/.test(t.css.star || ''), `色卡 ${t.id} 的 star 是合法色值`);
+
+    // 每一对 bg/fg 都要能在白底上达到 WCAG AA（正文 4.5:1）
+    for (const [role, v] of Object.entries(t.css)) {
+      if (role === 'star' || role === 'both' || role === 'bothMixed') continue;
+      const cr = contrast(v.bg, v.fg, t.mode === 'dark');
+      ok(cr >= 4.5, `色卡 ${t.id}/${role} 对比度 ${cr} ≥ 4.5`);
+    }
+  }
+
+  // style.css 的 :root 默认值必须等于 vega 这套（否则「默认」和「选中默认」长得不一样）
+  const df = Themes.getTheme(Themes.DEFAULT_THEME);
+  for (const [role, v] of Object.entries(df.css)) {
+    if (!v || typeof v === 'string') continue;   // star 是单个色值，单独校验
+    const name = Themes.varName(role);
+    ok(cssText.includes(name + '-bg: ' + v.bg), `:root 的 ${name}-bg 与默认色卡一致`);
+    ok(cssText.includes(name + '-fg: ' + v.fg), `:root 的 ${name}-fg 与默认色卡一致`);
+  }
+  ok(cssText.includes('--vega-star: ' + df.css.star), ':root 的 --vega-star 与默认色卡一致');
+
+  // Top 星标：
+  const star = cssText.match(/\.vega-star\s*\{[^}]*\}/)?.[0] || '';
+  ok(/var\(--vega-star\)/.test(star), '.vega-star 引用 --vega-star 变量');
+  ok(cssText.includes('.vega-pop-top'), 'style.css 含 .vega-pop-top（浮层里的 Top 标记）');
+
+  // 主题应用必须能改 :root —— 否则换色不生效
+  ok(typeof Themes.applyTheme === 'function', 'themes.js 暴露 applyTheme()');
+  ok(typeof Themes.inlineStyle === 'function', 'themes.js 暴露 inlineStyle()');
+
+  // 三处消费方都不能再写死色值
+  const pj = read('popup/popup.js');
+  ok(!/background:\s*rgba?\(/.test(pj.replace(/var\(--[^)]*\)/g, '')),
+    'popup.js 不再硬编码标签色值');
+  const st = read('selftest.js');
+  ok(!/background:\s*rgba?\(/.test(st.replace(/\/\*[\s\S]*?\*\//g, '')),
+    'selftest.js 不再硬编码标签色值');
 }
 
 // ---------------------------------------------------------------- 8. popup 元素

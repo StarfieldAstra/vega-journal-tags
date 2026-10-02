@@ -77,6 +77,26 @@ deepEq(bText(judge('预警刊示例', CTX)), ['中科院3区', '预警'], '预�
 eq(judge('预警刊示例', CTX).warning.year, '2024', '预警年份');
 eq(judge('预警刊示例', CTX).warning.reason, '论文工厂', '预警原因');
 
+// Top 不分分区：1 区按官方规则全是 Top，2 区约 12% 是 Top。
+// 曾经误以为「只有 1 区才会出 Top」，特别注意别把 2 区的 Top 吞掉。
+{
+  const ctx = {
+    journals: {
+      'Z1': { n: 'Z1', z: '1', T: 1 },
+      'Z2': { n: 'Z2', z: '2' },
+      'Z2T': { n: 'Z2T', z: '2', T: 1 },
+    },
+    idx: null, meta: {}, detail: {},
+  };
+  ctx.idx = buildIndex(ctx.journals);
+  deepEq(bText(judge('Z1', ctx)), ['中科院1区·Top'], '1 区 Top 并入分区标签文字');
+  deepEq(bText(judge('Z2', ctx)), ['中科院2区'], '2 区非 Top 不带星标后缀');
+  deepEq(bText(judge('Z2T', ctx)), ['中科院2区·Top'], '2 区 Top 同样带 ·Top 后缀');
+  eq(judge('Z2T', ctx).badges[0].top, true, '2 区 Top 的 top 标记透传（渲染 ★ 用）');
+  eq(judge('Z2', ctx).badges[0].top, false, '2 区非 Top 时 top 为 false');
+  eq(judge('Z2T', ctx).badges[0].k, 'cas-2', '2 区 Top 仍用 cas-2 样式 key');
+}
+
 console.log('─── 四、标签顺序 ──────────────────────────────────');
 {
   // 构造一本"五毒俱全"的刊，验证顺序：双库 → 北核 → 分区 → 预警
@@ -112,6 +132,16 @@ for (const k of BADGE_KEYS) {
   for (const k of BADGE_KEYS) {
     ok(popjs.includes("'" + k + "'"), `popup.js 图例缺少 ${k}`);
   }
+  // 图例里出现的 key 不能有 BADGE_KEYS 之外的拼错值（拼错 = 图例永远空白）
+  const Themes = require('./extension/core/themes.js');
+  const declared = [...popjs.matchAll(/k:\s*'([a-z0-9-]+)'/g)].map((m) => m[1]);
+  const badKey = declared.filter((k) => !BADGE_KEYS.includes(k));
+  eq(badKey.join(','), '', 'popup.js 图例存在未定义的 badge key');
+  for (const k of BADGE_KEYS) {
+    ok(!!Themes.ROLE[k], `themes.js ROLE 表缺少 ${k}`);
+  }
+  ok(Object.keys(Themes.ROLE).length === BADGE_KEYS.length,
+    `ROLE 表与 BADGE_KEYS 数量不一致（${Object.keys(Themes.ROLE).length} vs ${BADGE_KEYS.length}）`);
 }
 
 console.log('─── 七、真实数据集抽查 ───────────────────────────');
@@ -152,6 +182,38 @@ console.log('─── 七、真实数据集抽查 ─────────�
       if ((hasC && hasD) || (hasBoth && (hasC || hasD))) bothBad++;
     }
     eq(bothBad, 0, `有 ${bothBad} 本刊同时出现了单库与双库标签（合并逻辑失效）`);
+
+    // ---- Top 的真实分布（对照中科院官方规则，兼作数据回归）----
+    // 官方规则：1 区期刊全部进 Top；2 区择优进 Top（约 12%）；3、4 区没有。
+    // 若哪天数据里 2 区 Top 变成 0，或 3/4 区冒出 Top，说明上游 CSV 解析出问题了。
+    const zone = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    const zoneTop = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    for (const k of Object.keys(d.journals)) {
+      const r = d.journals[k];
+      const z = String(r.z || '');
+      if (!(z in zone)) continue;
+      zone[z]++;
+      if (r.T) zoneTop[z]++;
+    }
+    ok(zone[1] > 1000, `1 区数量合理（${zone[1]}）`);
+    eq(zoneTop[1], zone[1], `官方规则：1 区应全部为 Top（${zoneTop[1]}/${zone[1]}）`);
+    ok(zoneTop[2] > 300, `2 区应存在 Top（${zoneTop[2]} 本）——为零说明 Top 字段被吞了`);
+    ok(zoneTop[2] < zone[2] * 0.3, `2 区 Top 应只是少数（${zoneTop[2]}/${zone[2]}）`);
+    eq(zoneTop[3], 0, '官方规则：3 区不设 Top');
+    eq(zoneTop[4], 0, '官方规则：4 区不设 Top');
+
+    // 逐条确认带 T 的记录里，v 渲染出的文字确实带 ·Top
+    let topBad = 0;
+    for (const k of Object.keys(d.journals)) {
+      const r = d.journals[k];
+      if (!r.z || !r.T) continue;
+      const txt = bText(judge(k, ctx)).join('|');
+      if (!txt.includes('·Top')) topBad++;
+    }
+    eq(topBad, 0, `有 ${topBad} 本 Top 刊渲染不出 ·Top 字样`);
+
+    const probe = judge('ADDICTION', ctx);
+    deepEq(bText(probe), ['中科院2区·Top'], '真实数据：ADDICTION = 中科院2区·Top');
   } else {
     console.log('    （跳过：未找到 extension/data/journals.json）');
   }

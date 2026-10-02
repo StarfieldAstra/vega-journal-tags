@@ -149,26 +149,27 @@
    * 渲染标签。直接复用 judge() 产出的 badges，
    * 保证自检页看到的就是插件实际会画出来的东西。
    */
+  /* judge.js 的 Badge key → themes.js 的语义槽位，统一从 themes.js 取 */
+  const ROLE = (window.VegaThemes && window.VegaThemes.ROLE) || {};
+
   function badges(res) {
-    const STYLE = {
-      'both-core': 'background:linear-gradient(135deg,#af52de,#d42aa4);color:#fff;font-weight:600;box-shadow:0 1px 3px rgba(175,82,222,.4)',
-      'both-mixed': 'background:linear-gradient(135deg,#b968d8,#e05cb0);color:#fff;font-weight:600',
-      'cssci-source': 'background:rgba(255,204,0,.38);color:#5C4300',
-      'cssci-ext': 'background:rgba(255,204,0,.24);color:#6B5200',
-      'cscd-core': 'background:rgba(142,142,147,.38);color:#1C1C1E',
-      'cscd-ext': 'background:rgba(142,142,147,.24);color:#2C2C2E',
-      'beike': 'background:rgba(0,122,255,.30);color:#004E9C',
-      'cas-1': 'background:rgba(255,59,48,.32);color:#A3121A',
-      'cas-2': 'background:rgba(255,149,0,.34);color:#8F4000',
-      'cas-3': 'background:rgba(48,176,199,.36);color:#005A66',
-      'cas-4': 'background:rgba(142,142,147,.36);color:#2C2C2E',
-      'warning': 'background:rgba(255,59,48,.34);color:#A3121A;font-weight:600',
-    };
+    // 与弹窗、页面共用同一份配色数据，避免三处脱色；
+    // 未传 STYLE 的老版本降级保留，这里一律走 themes.js。
+    const t = (window.VegaThemes && window.VegaThemes.getTheme)
+      ? window.VegaThemes.getTheme(window.__vegaTheme || 'vega')
+      : null;
+    const css = t ? t.css : {};
     return (res.badges || [])
-      .map(
-        (b) =>
-          '<span class="tag aux" style="' + (STYLE[b.k] || '') + '">' + esc(b.t) + '</span>'
-      )
+      .map((b) => {
+        const v = css[ROLE[b.k]];
+        if (!v) return '<span class="tag aux">' + esc(b.t) + '</span>';
+        let inner = esc(b.t);
+        if (b.top && inner.endsWith('·Top')) {
+          inner = esc(inner.slice(0, -4)) +
+            '<span style="color:' + t.css.star + ';font-weight:600">★</span>Top';
+        }
+        return '<span class="tag aux" style="background:' + v.bg + ';color:' + v.fg + '">' + inner + '</span>';
+      })
       .join('');
   }
 

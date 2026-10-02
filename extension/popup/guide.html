@@ -76,24 +76,16 @@
   td + td, th + th { border-left: 0.5px solid var(--sep); }
   tbody tr + tr td { border-top: 0.5px solid var(--sep); }
 
-  /* 收录标签徽标（与插件内实际样式一致） */
+  /* 收录标签徽标 —— 只留形状，颜色由 themes.js 按用户当前色卡注入
+     （data-bk = judge.js 的 Badge key，渲染逻辑见页尾脚本） */
   .bd {
     display: inline-flex; align-items: center;
     padding: 0 8px; height: 21px; border-radius: 6px;
     font-size: 12px; font-weight: 500; letter-spacing: 0.2px;
     white-space: nowrap; flex: 0 0 auto;
+    background: rgba(120, 120, 128, 0.26);   /* themes.js 加载失败时的兜底 */
   }
-  .both{background:linear-gradient(135deg,#af52de 0%,#d42aa4 100%);color:#fff;font-weight:600}
-  .cssci-s{background:rgba(255,204,0,.38);color:#5C4300}
-  .cssci-e{background:rgba(255,204,0,.24);color:#6B5200}
-  .cscd-c{background:rgba(142,142,147,.38);color:#1C1C1E}
-  .cscd-e{background:rgba(142,142,147,.24);color:#2C2C2E}
-  .bk{background:rgba(0,122,255,.30);color:#004E9C}
-  .z1{background:rgba(255,59,48,.32);color:#A3121A}
-  .z2{background:rgba(255,149,0,.34);color:#8F4000}
-  .z3{background:rgba(48,176,199,.36);color:#005A66}
-  .z4{background:rgba(142,142,147,.36);color:#2C2C2E}
-  .wn{background:rgba(255,59,48,.34);color:#A3121A;font-weight:600}
+  .bd .st { font-size: 11px; font-weight: 600; }  /* ★ Top 星标 */
 
   code {
     background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 5px;
@@ -135,18 +127,18 @@
 <table>
   <thead><tr><th style="width:110px">标签</th><th>含义</th></tr></thead>
   <tbody>
-    <tr><td><span class="bd both">CSSCI+CSCD</span></td><td><b>双库收录</b>：同时是 CSSCI 来源版与 CSCD 核心库。紫色渐变是这个插件里最醒目的一个标签 —— 集中投稿时最值得先看这一类。</td></tr>
-    <tr><td><span class="bd cssci-s">CSSCI</span></td><td>CSSCI（中文社会科学引文索引）<b>来源期刊</b>，2025–2026 版</td></tr>
-    <tr><td><span class="bd cssci-e">CSSCI扩展</span></td><td>CSSCI <b>扩展版</b>来源期刊</td></tr>
-    <tr><td><span class="bd cscd-c">CSCD</span></td><td>CSCD（中国科学引文数据库）<b>核心库</b>，2025–2026 版</td></tr>
-    <tr><td><span class="bd cscd-e">CSCD扩展</span></td><td>CSCD <b>扩展库</b></td></tr>
-    <tr><td><span class="bd bk">北核</span></td><td>北京大学《中文核心期刊要目总览》收录</td></tr>
-    <tr><td><span class="bd z1">中科院1区</span></td><td>中科院文献情报中心期刊分区表<b>大类 1 区</b></td></tr>
-    <tr><td><span class="bd z2">中科院2区</span></td><td>大类 2 区</td></tr>
-    <tr><td><span class="bd z3">中科院3区</span></td><td>大类 3 区</td></tr>
-    <tr><td><span class="bd z4">中科院4区</span></td><td>大类 4 区</td></tr>
-    <tr><td><span class="bd z1">中科院1区·Top</span></td><td>该刊同时被标记为 <b>Top 期刊</b>（Top 直接并入分区标签文字，不单独占一个标签位，避免在窄列里被挤掉）</td></tr>
-    <tr><td><span class="bd wn">预警</span></td><td>曾列入中科院《国际期刊预警名单》，点击标签可看年份与原因。<b>投稿前请务必核实</b></td></tr>
+    <tr><td><span class="bd" data-bk="both-core">CSSCI+CSCD</span></td><td><b>双库收录</b>：同时是 CSSCI 来源版与 CSCD 核心库。紫色渐变是这个插件里最醒目的一个标签 —— 集中投稿时最值得先看这一类。</td></tr>
+    <tr><td><span class="bd" data-bk="cssci-source">CSSCI</span></td><td>CSSCI（中文社会科学引文索引）<b>来源期刊</b>，2025–2026 版</td></tr>
+    <tr><td><span class="bd" data-bk="cssci-ext">CSSCI扩展</span></td><td>CSSCI <b>扩展版</b>来源期刊</td></tr>
+    <tr><td><span class="bd" data-bk="cscd-core">CSCD</span></td><td>CSCD（中国科学引文数据库）<b>核心库</b>，2025–2026 版</td></tr>
+    <tr><td><span class="bd" data-bk="cscd-ext">CSCD扩展</span></td><td>CSCD <b>扩展库</b></td></tr>
+    <tr><td><span class="bd" data-bk="beike">北核</span></td><td>北京大学《中文核心期刊要目总览》收录</td></tr>
+    <tr><td><span class="bd" data-bk="cas-1">中科院1区</span></td><td>中科院文献情报中心期刊分区表<b>大类 1 区</b></td></tr>
+    <tr><td><span class="bd" data-bk="cas-2">中科院2区</span></td><td>大类 2 区</td></tr>
+    <tr><td><span class="bd" data-bk="cas-3">中科院3区</span></td><td>大类 3 区</td></tr>
+    <tr><td><span class="bd" data-bk="cas-4">中科院4区</span></td><td>大类 4 区</td></tr>
+    <tr><td><span class="bd" data-bk="cas-1">中科院1区 <span class="st">★</span>Top</span> <span class="bd" data-bk="cas-2">中科院2区 <span class="st">★</span>Top</span></td><td>该刊同时入选分区表 <b>Top 期刊</b>。官方规则：<b>1 区全部是 Top</b>，2 区约 12%（338/2844）择优入选，3、4 区不设。Top 直接并入分区标签文字并加 ★，不单独占一个标签位（避免在窄列里被挤掉），<b>任何分区有 Top 都会显示 ★</b></td></tr>
+    <tr><td><span class="bd" data-bk="warning">预警</span></td><td>曾列入中科院《国际期刊预警名单》，点击标签可看年份与原因。<b>投稿前请务必核实</b></td></tr>
   </tbody>
 </table>
 
@@ -210,6 +202,32 @@
   CSSCI 2025–2026｜CSCD 2025–2026｜北大核心｜中科院分区 2025 终版<br>
   本插件仅呈现公开收录信息，不作任何期刊分级评价。
 </footer>
+
+<script src="../core/themes.js"></script>
+<script>
+/**
+ * 说明页里的示例标签直接用「用户当前选的色卡」上色。
+ * 好处：换一套配色，说明页跟手变，不会出现「说明页是一种配色、
+ * 页面上是另一种」的错位 —— 这正是以前三处写死颜色惹出的麻烦。
+ */
+(function () {
+  const T = window.VegaThemes;
+  if (!T) return;
+  chrome.storage.local.get({ theme: T.DEFAULT_THEME }, (st) => {
+    const t = T.getTheme(st && st.theme);
+    document.querySelectorAll('.bd[data-bk]').forEach((el) => {
+      const v = t.css[T.ROLE[el.getAttribute('data-bk')]];
+      if (!v) return;
+      el.style.background = v.bg;
+      el.style.color = v.fg;
+      if (el.getAttribute('data-bk').startsWith('both') ||
+          el.getAttribute('data-bk') === 'warning') el.style.fontWeight = '600';
+      const star = el.querySelector('.st');
+      if (star) star.style.color = t.css.star;
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
