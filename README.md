@@ -88,10 +88,10 @@
 ## 开发
 
 ```bash
-node validate.js           # 发布前静态校验（537 项：manifest / MV3 资源声明 / match pattern / 残留词 / 配色一致性 / 选择器布局）
+node validate.js           # 发布前静态校验（589 项：manifest / 图标规格 / MV3 资源声明 / match pattern / 残留词 / 配色一致性 / 选择器布局）
 node test_judge.js         # 判定引擎单元测试（134 项，含 Top 分布回归与自定义主题求解）
 node tools/build_themes.js # 改配色后重生成 core/themes.js（自动反解 alpha 与文字色、输出对比度报告）
-node tools/make_logo.js    # 重生成全部尺寸 logo（纯 Node 栅格化，无第三方依赖）
+python tools/make_logo_bitmap.py   # 重生成全部尺寸 logo（位图素材 + 光学裁切 + 超椭圆圆角，需 Pillow/numpy）
 node build_release.js      # 隐私扫描 + 生成 release/（打包需手动跑 7z）
 ```
 
@@ -109,9 +109,10 @@ python tools/slim_data.py <源 journals.json>
 4. **CSSCI 与 CSCD 必须合并成一个标签。** 拆成两个时，在知网这类窄列里第二个常被 `overflow:hidden` 裁掉，看起来就像"少了一个库"。
 5. **所有标签的尺寸属性要全部统一**：`height / font-size / border-radius / padding / font-weight / letter-spacing`。字重与字距也会影响渲染宽度，只统一字号和高度是不够的。
 6. **配色只能有一份事实来源。** 页面标签、弹窗图例、说明页示例三处都从 `core/themes.js` 取色 —— 曾经三处各写一份 hex，换色时漏改一处，出现"图例是一种颜色、标签是另一种"。`validate.js` 现在会核对 `:root` 默认值与默认色卡逐项一致。
-7. **字母标用「等宽描边 + 斜接」画，别靠字体。** logo 是折线 A→B→C 的等宽描边（miter join），外轮廓取路径左侧、字怀取右侧 —— 不依赖任何字体文件，16px 下也不会糊。曾经用幂函数星形（`|x/R|^p+|y/R|^p=1`），v1.2 起改为学习 ZCode 的「黑底圆角方块 + 白色粗体字母」语言，见 `tools/make_logo.js`。
-8. **别依赖 chrome.storage 回调的异步性。** 初始化逻辑要放在 IIFE 末尾、所有定义之后 —— 否则哪天回调同步执行（或测试里 mock 成同步），就会踩"用到还没初始化的 const"的雷。
-9. **自定义主题的颜色必须现场求解，不能让用户直接填 bg/fg。** 用户只给 8 个基础色，扩展版明度、文字色（WCAG ≥ 4.5）、双库渐变全部用与生成器同一套函数推导（`Function.prototype.toString` 序列化进 themes.js，两边永不漂移）。让用户直接填文字色，必然出现浅色配浅色这种读不了的组合。
+7. **位图 logo 要按尺寸做「光学裁切」，不能一刀切整幅缩小。** 整幅缩到 16px 会糊成一团黑；`tools/make_logo_bitmap.py` 的做法是：小尺寸把行星盘放大到画面主体（裁切比例 0.64→0.95 随尺寸递增）、提对比 + USM 锐化把环的高光从辉光里拉出来，再用超椭圆遮罩（`|x/a|^n+|y/a|^n≤1`，n≈4）切出圆角、四角透明（Chrome 不会自己裁圆角）。素材图存 `assets/logo-source.jpg` 入库，logo 因此可复现。历史方案见 `tools/make_logo.js`（纯 Node 矢量栅格化：等宽描边 + miter 斜接画字母标，不依赖字体文件）。
+8. **发布包里绝不能混进开发用的 mock 页。** `popup/preview.html` 是本地模拟 `chrome.storage` 的调试页（已在 `.gitignore` 里），但打包脚本是整目录复制的，会顺手把它塞进安装包 —— 用户装上后误点就看到假面板。`build_release.js` 的 `copyDir` 已显式跳过。
+9. **别依赖 chrome.storage 回调的异步性。** 初始化逻辑要放在 IIFE 末尾、所有定义之后 —— 否则哪天回调同步执行（或测试里 mock 成同步），就会踩"用到还没初始化的 const"的雷。
+10. **自定义主题的颜色必须现场求解，不能让用户直接填 bg/fg。** 用户只给 8 个基础色，扩展版明度、文字色（WCAG ≥ 4.5）、双库渐变全部用与生成器同一套函数推导（`Function.prototype.toString` 序列化进 themes.js，两边永不漂移）。让用户直接填文字色，必然出现浅色配浅色这种读不了的组合。
 
 ## 许可
 

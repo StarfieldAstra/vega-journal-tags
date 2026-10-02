@@ -124,6 +124,9 @@ const EXT_KEEP = [
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+    // preview.html 是本地开发用的 storage mock 页（.gitignore 已排除），
+    // 绝不能进发布包：用户装上后多点一下就会看到假面板
+    if (e.name === 'preview.html') continue;
     const s = path.join(src, e.name);
     const d = path.join(dest, e.name);
     if (e.isDirectory()) copyDir(s, d);

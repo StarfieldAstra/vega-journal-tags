@@ -88,6 +88,48 @@ if (manifest) {
   ok(Object.keys(manifest.icons || {}).length >= 4, '至少提供 16/32/48/128 四档图标');
 }
 
+// ------------------------------------------------------------- 1b. 图标规格
+section('图标规格');
+/**
+ * 只读 PNG 的 IHDR，不解码像素 —— 校验「尺寸对不对 / 有没有透明通道」就够，
+ * 真去解码像素得自己写反滤波，收益不抵成本。
+ * color type：0=灰 2=RGB 3=调色板 4=灰+A 6=RGBA
+ */
+function pngInfo(rel) {
+  const p = path.join(EXT, rel);
+  if (!fs.existsSync(p)) return null;
+  const b = fs.readFileSync(p);
+  if (b.length < 26 || b.slice(0, 8).toString('hex') !== '89504e470d0a1a0a') return null;
+  const color = b[25];
+  return { w: b.readUInt32BE(16), h: b.readUInt32BE(20), depth: b[24], color, hasAlpha: color === 4 || color === 6 };
+}
+if (manifest) {
+  for (const [sz, f] of Object.entries(manifest.icons || {})) {
+    const info = pngInfo(f);
+    ok(!!info, `图标是合法 PNG：${f}`);
+    if (info) {
+      eq2(info.w, +sz, `${f} 宽度匹配 manifest 声明的 ${sz}`);
+      eq2(info.h, +sz, `${f} 高度匹配 manifest 声明的 ${sz}`);
+      ok(info.hasAlpha, `${f} 带透明通道（四角圆角由切图实现，浏览器不会裁）`);
+    }
+  }
+  // 商店与深底场景用的两张：必须不透明，且尺寸正确
+  for (const [f, sz, why] of [
+    ['store-logo-300.png', 300, '商店列表徽标'],
+    ['icon-black-128.png', 128, '深色底版本'],
+  ]) {
+    const info = pngInfo(f);
+    ok(!!info, `${why} ${f} 存在且为 PNG`);
+    if (info) {
+      eq2(info.w, sz, `${f} 宽度为 ${sz}`);
+      eq2(info.h, sz, `${f} 高度为 ${sz}`);
+      ok(!info.hasAlpha, `${f} 不含透明通道（商店要求无 alpha）`);
+    }
+  }
+  ok(exists('../assets/logo-source.jpg'), '素材图 assets/logo-source.jpg 已入库（logo 可复现）');
+  ok(fs.existsSync(path.join(ROOT, 'tools', 'make_logo_bitmap.py')), '位图 logo 生成器 tools/make_logo_bitmap.py 存在');
+}
+
 // ---------------------------------------------------------------- 2. 文件引用
 section('文件引用完整性');
 if (manifest) {
