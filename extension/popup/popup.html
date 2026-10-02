@@ -38,14 +38,23 @@
 
   /* ---- 顶部标题栏 ---- */
   .hd {
-    padding: 14px 16px 10px;
+    padding: 12px 16px 10px;
     background: rgba(242, 242, 247, 0.85);
     -webkit-backdrop-filter: saturate(180%) blur(18px);
     backdrop-filter: saturate(180%) blur(18px);
     border-bottom: 0.5px solid var(--sep);
   }
-  .hd h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -0.2px; }
-  .hd .ver { font-size: 11.5px; color: var(--gray); margin-top: 2px; }
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .brand .logo { width: 22px; height: 22px; border-radius: 5.5px; display: block; }
+  .brand .word {
+    font-family: "Bodoni MT", Didot, "Playfair Display", "Songti SC",
+      "Noto Serif SC", Georgia, "Times New Roman", serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: 0.6px;
+    color: var(--label);
+  }
 
   .body { padding: 12px 12px 16px; }
 
@@ -99,20 +108,21 @@
   .sw input:checked + .tr + .kn { transform: translateX(20px); }
   .sw input:focus-visible + .tr { box-shadow: 0 0 0 3.5px rgba(0,122,255,0.28); }
 
-  /* ---- 标签配色选择 ---- */
+  /* ---- 标签配色选择 ----
+     网格平铺：全部色卡一屏可见，不需要横向滚动（横向滚动在
+     弹窗里只能拖拽或按方向键，体验很差） */
   .themes {
-    display: flex; gap: 8px; padding: 12px 13px; overflow-x: auto;
-    scrollbar-width: none;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    padding: 12px 13px 8px;
   }
-  .themes::-webkit-scrollbar { display: none; }
   .th {
-    flex: 0 0 auto; width: 74px; padding: 0; cursor: pointer;
+    width: auto; min-width: 0; padding: 0; cursor: pointer;
     background: none; border: none; font-family: inherit; text-align: center;
   }
   /* 预览：把这套色卡里最有代表性的几枚做成小色块，
      一眼能看出冷暖与浓淡，不用逐个点开试 */
   .th-bar {
-    display: flex; overflow: hidden; height: 26px;
+    display: flex; overflow: hidden; height: 24px;
     border-radius: 7px; border: 1.5px solid transparent;
     transition: border-color 0.15s ease, transform 0.12s ease;
   }
@@ -125,7 +135,46 @@
   .th[aria-pressed="true"] .th-nm { color: var(--blue); font-weight: 600; }
   .th:hover .th-bar { transform: translateY(-1px); }
   .th:focus-visible .th-bar { border-color: var(--blue); }
+  /* 「自定义」入口的虚线框，暗示「这里可以造一套新的」 */
+  .th-custom .th-bar {
+    border: 1.5px dashed var(--sep);
+    align-items: center; justify-content: center;
+    color: var(--gray); font-size: 15px; line-height: 1;
+  }
+  .th-custom[aria-pressed="true"] .th-bar { border-color: var(--blue); color: var(--blue); }
 
+  /* ---- 自定义配色面板 ---- */
+  .cc-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 13px; position: relative;
+  }
+  .cc-row + .cc-row::before {
+    content: ""; position: absolute; left: 13px; right: 0; top: 0;
+    height: 0.5px; background: var(--sep);
+  }
+  .cc-lb { flex: 1; font-size: 12.5px; color: var(--label); }
+  .cc-row input[type="color"] {
+    width: 32px; height: 24px; padding: 0; border: none; border-radius: 5px;
+    background: none; cursor: pointer; flex: 0 0 auto;
+  }
+  .cc-hex {
+    width: 72px; padding: 3px 6px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 11.5px; text-transform: uppercase;
+    color: var(--label); background: var(--bg);
+    border: 0.5px solid var(--sep); border-radius: 6px;
+  }
+  .cc-hex:focus { outline: none; border-color: var(--blue); }
+  .cc-hex.cc-bad { border-color: var(--red); color: var(--red); }
+  .cc-reset {
+    margin: 6px 13px 12px; padding: 6px 0; width: calc(100% - 26px);
+    font-size: 12px; color: var(--blue); background: none;
+    border: 0.5px solid var(--sep); border-radius: 8px; cursor: pointer;
+    font-family: inherit;
+  }
+  .cc-reset:hover { background: rgba(0, 0, 0, 0.03); }
+
+  /* ---- 图例下的注释文字 ---- */
   .theme-desc {
     padding: 0 13px 12px; font-size: 11.5px; line-height: 1.55; color: var(--gray);
   }
@@ -211,8 +260,10 @@
 <body>
 
 <div class="hd">
-  <h1>Vega · 期刊收录标签</h1>
-  <div class="ver" id="ver">正在加载…</div>
+  <div class="brand">
+    <img class="logo" src="../icon32.png" alt="">
+    <span class="word">Vega</span>
+  </div>
 </div>
 
 <div class="body">
@@ -243,7 +294,10 @@
   <div class="group-t">标签配色</div>
   <div class="group">
     <div class="themes" id="themes"></div>
-    <div class="theme-desc" id="themeDesc"></div>
+    <div id="customPanel" style="display:none">
+      <div id="customColors"></div>
+      <button id="customReset" class="cc-reset" type="button">恢复默认色</button>
+    </div>
   </div>
 
   <!-- 收录类型图例 -->

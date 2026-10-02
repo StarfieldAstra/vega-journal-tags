@@ -33,23 +33,28 @@
    *      也不会因为重渲染而丢失「已点开的浮层」之类的临时状态。
    */
   let curTheme = Themes.DEFAULT_THEME || 'vega';
+  let curCustom = null;   // 自定义模式的色值表（storage 的 custom 字段）
 
-  function setTheme(id) {
+  function setTheme(id, customMap) {
     if (!Themes.applyTheme) return;
     try {
-      Themes.applyTheme(document.documentElement, id);
+      Themes.applyTheme(document.documentElement, id, customMap);
       curTheme = id;
+      if (customMap !== undefined) curCustom = customMap;
     } catch (e) {
       /* 页面禁用 inline style 时静默降级为默认配色 */
     }
   }
   try {
-    chrome.storage.local.get({ theme: Themes.DEFAULT_THEME || 'vega' }, (st) => {
-      setTheme(st && st.theme);
+    chrome.storage.local.get({ theme: Themes.DEFAULT_THEME || 'vega', custom: null }, (st) => {
+      setTheme(st && st.theme, st && st.custom);
     });
-    // 弹窗里换色即时生效
+    // 弹窗里换色 / 调自定义色即时生效
     chrome.storage.onChanged.addListener((chg, area) => {
-      if (area === 'local' && chg && chg.theme) setTheme(chg.theme.newValue);
+      if (area !== 'local' || !chg) return;
+      if (chg.custom) curCustom = chg.custom.newValue;
+      if (chg.theme) setTheme(chg.theme.newValue, curCustom);
+      else if (chg.custom) setTheme(curTheme, curCustom);
     });
   } catch (e) { /* storage 不可用时用默认配色 */ }
 

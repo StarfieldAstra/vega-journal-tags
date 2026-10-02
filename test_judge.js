@@ -144,6 +144,51 @@ for (const k of BADGE_KEYS) {
     `ROLE 表与 BADGE_KEYS 数量不一致（${Object.keys(Themes.ROLE).length} vs ${BADGE_KEYS.length}）`);
 }
 
+console.log('─── 六b、自定义主题 ──────────────────────────────');
+{
+  const Themes = require('./extension/core/themes.js');
+  eq(Themes.CUSTOM_KEYS.length, 8, '自定义模式暴露 8 个基础色槽位');
+  eq(Themes.normalizeHex('#abc'), '#AABBCC', 'normalizeHex：#RGB 展开');
+  eq(Themes.normalizeHex('#a1B2c3'), '#A1B2C3', 'normalizeHex：大小写归一');
+  eq(Themes.normalizeHex('a1b2c3'), '#A1B2C3', 'normalizeHex：缺 # 也认');
+  eq(Themes.normalizeHex('#12345'), null, 'normalizeHex：5 位拒绝');
+  eq(Themes.normalizeHex('zzzzzz'), null, 'normalizeHex：非十六进制拒绝');
+  eq(Themes.normalizeHex(null), null, 'normalizeHex：null 安全');
+
+  const def = Themes.getTheme(Themes.DEFAULT_THEME);
+  const c0 = Themes.buildCustom(null);
+  // 8 个基础色与默认色卡逐字节一致；双库渐变与星标是推导量（渐变=CSSCI→CSCD），
+  // 只要求存在合法，不要求与内置色卡相同
+  for (const r of ['cssci', 'cssciExt', 'cscd', 'cscdExt', 'beike', 'cas1', 'cas2', 'cas3', 'cas4', 'warning']) {
+    eq(JSON.stringify(c0.css[r]), JSON.stringify(def.css[r]), `buildCustom(空) 的 ${r} 与默认色卡一致`);
+  }
+  ok(c0.css.both.bg.indexOf('linear-gradient') === 0 && !!c0.css.both.fg, 'buildCustom(空) 双库渐变合法');
+  const c1 = Themes.buildCustom({ cssci: '#112233', warning: '#AA0000' });
+  ok(c1.css.cssci.bg.indexOf('rgba(17, 34, 51') === 0, 'buildCustom 应用自定义 CSSCI 色');
+  ok(c1.css.warning.bg !== c0.css.warning.bg, 'buildCustom 应用自定义预警色');
+  ok(c1.css.cssciExt.bg.indexOf('rgba(17, 34, 51') === 0, '扩展版由同槽位色推导');
+  const c2 = Themes.buildCustom({ cssci: 'not-a-color' });
+  eq(c2.css.cssci.bg, c0.css.cssci.bg, '非法输入回退出厂色');
+  // 每个角色的 bg/fg 都必须存在且文字色是 hex
+  for (const r of ['cssci', 'cssciExt', 'cscd', 'cscdExt', 'beike', 'cas1', 'cas2', 'cas3', 'cas4', 'warning', 'both', 'bothMixed']) {
+    ok(!!(c1.css[r] && c1.css[r].bg && c1.css[r].fg), `自定义色卡覆盖 ${r}`);
+  }
+  ok(/^#[0-9A-F]{6}$/.test(c1.css.star), '自定义色卡 star 为合法 hex');
+  // WCAG：文字色全部 ≥ 4.5（与生成器同一套求解器，这里锁死底线）
+  const lum = (c8) => { const f = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c8[0]) + 0.7152 * f(c8[1]) + 0.0722 * f(c8[2]); };
+  const con = (a, b) => { const l1 = lum(a), l2 = lum(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
+  const h2r = (h) => { const s = h.replace('#', ''); return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)]; };
+  for (const [r, v] of Object.entries(c1.css)) {
+    if (r === 'star' || r === 'both' || r === 'bothMixed') continue;
+    const m = v.bg.match(/rgba?\(([^)]+)\)/);
+    const p = m[1].split(',').map(Number);
+    const eff = v.bg.indexOf('rgba(') === 0
+      ? [255 * (1 - p[3]) + p[0] * p[3], 255 * (1 - p[3]) + p[1] * p[3], 255 * (1 - p[3]) + p[2] * p[3]]
+      : p.slice(0, 3);
+    ok(con(eff, h2r(v.fg)) >= 4.5, `自定义色卡 ${r} 对比度 ≥ 4.5`);
+  }
+}
+
 console.log('─── 七、真实数据集抽查 ───────────────────────────');
 {
   const p = path.join(__dirname, 'extension', 'data', 'journals.json');

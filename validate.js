@@ -18,6 +18,7 @@ let pass = 0, fail = 0, warn = 0;
 const problems = [];
 
 function ok(cond, msg) { cond ? pass++ : (fail++, problems.push('[FAIL] ' + msg)); }
+function eq2(a, b, msg) { ok(a === b, msg + `（期望 ${JSON.stringify(b)}，实际 ${JSON.stringify(a)}）`); }
 function soft(cond, msg) { cond ? pass++ : (warn++, problems.push('[WARN] ' + msg)); }
 function section(t) { console.log('\n─── ' + t + ' ' + '─'.repeat(Math.max(0, 46 - t.length * 2))); }
 
@@ -296,6 +297,38 @@ section('配色主题');
   ok(typeof Themes.applyTheme === 'function', 'themes.js 暴露 applyTheme()');
   ok(typeof Themes.inlineStyle === 'function', 'themes.js 暴露 inlineStyle()');
 
+  // 自定义主题：运行时求解器 + 输入解析
+  ok(typeof Themes.buildCustom === 'function', 'themes.js 暴露 buildCustom()');
+  ok(typeof Themes.customDefaults === 'function', 'themes.js 暴露 customDefaults()');
+  ok(typeof Themes.normalizeHex === 'function', 'themes.js 暴露 normalizeHex()');
+  ok(Array.isArray(Themes.CUSTOM_KEYS) && Themes.CUSTOM_KEYS.length === 8,
+    `自定义模式可调 8 个基础色（当前 ${Themes.CUSTOM_KEYS && Themes.CUSTOM_KEYS.length}）`);
+  eq2(Themes.normalizeHex('#f80'), '#FF8800', 'normalizeHex 支持 #RGB 缩写');
+  eq2(Themes.normalizeHex('00aaff'), '#00AAFF', 'normalizeHex 支持无 # 输入');
+  eq2(Themes.normalizeHex('#GG0000'), null, 'normalizeHex 拒绝非法输入');
+  const defMap = Themes.customDefaults();
+  const defTheme = Themes.getTheme(Themes.DEFAULT_THEME);
+  ok(Object.keys(defMap).length === 8, 'customDefaults 提供 8 个出厂色');
+  const customDef = Themes.buildCustom(null);
+  for (const r of ['cssci', 'cssciExt', 'cscd', 'cscdExt', 'beike', 'cas1', 'cas2', 'cas3', 'cas4', 'warning']) {
+    eq2(JSON.stringify(customDef.css[r]), JSON.stringify(defTheme.css[r]), `buildCustom(出厂色) 的 ${r} 与默认色卡一致`);
+  }
+  ok(customDef.css.both.bg.indexOf('linear-gradient') === 0, 'buildCustom(出厂色) 双库渐变合法');
+  const customTweaked = Themes.buildCustom({ cssci: '#123456', cas1: '#FF0000' });
+  ok(customTweaked.css.cssci.bg !== customDef.css.cssci.bg, 'buildCustom 应用用户改色');
+  const customBad = Themes.buildCustom({ cssci: '红色' });
+  ok(customBad.css.cssci.bg === customDef.css.cssci.bg, 'buildCustom 对非法色回退出厂色');
+  for (const k of BADGE_KEYS) {
+    const role = (Themes.ROLE || {})[k];
+    const v = role && customTweaked.css[role];
+    ok(!!(v && v.bg && v.fg), `自定义色卡覆盖 ${k}`);
+    if (v && role !== 'both' && role !== 'bothMixed') {
+      const cr = contrast(v.bg, v.fg, false);
+      ok(cr >= 4.5, `自定义色卡 ${role} 对比度 ${cr} ≥ 4.5`);
+    }
+  }
+  ok(/^#[0-9A-Fa-f]{6}$/.test(customTweaked.css.star || ''), '自定义色卡 star 合法');
+
   // 三处消费方都不能再写死色值
   const pj = read('popup/popup.js');
   ok(!/background:\s*rgba?\(/.test(pj.replace(/var\(--[^)]*\)/g, '')),
@@ -303,6 +336,42 @@ section('配色主题');
   const st = read('selftest.js');
   ok(!/background:\s*rgba?\(/.test(st.replace(/\/\*[\s\S]*?\*\//g, '')),
     'selftest.js 不再硬编码标签色值');
+}
+
+// ---------------------------------------------------------------- 7c. 配色选择器与头部
+section('配色选择器 / 弹窗头部');
+{
+  const ph = read('popup/popup.html');
+  const pj = read('popup/popup.js');
+
+  // 选择器必须一屏可见：网格平铺，禁止横向滚动（横向滚动在弹窗里
+  // 只能拖拽/按方向键，等于把一半色卡藏了起来）
+  const themesCss = ph.match(/\.themes\s*\{[^}]*\}/)?.[0] || '';
+  ok(!/overflow-x/.test(themesCss), '.themes 不再横向滚动');
+  ok(/grid-template-columns|flex-wrap/.test(themesCss), '.themes 平铺换行显示全部色卡');
+
+  // 色卡不需要解释：不再渲染描述/色源区
+  ok(!ph.includes('id="themeDesc"'), 'popup.html 移除色源描述元素');
+  ok(!pj.includes('showThemeDesc'), 'popup.js 移除描述渲染逻辑');
+  ok(!pj.includes('.source'), 'popup.js 不再读 source 字段');
+
+  // 自定义配色入口
+  ok(ph.includes('id="customPanel"') && ph.includes('id="customColors"'),
+    'popup.html 含自定义配色面板');
+  ok(pj.includes('buildCustom'), 'popup.js 使用 buildCustom 现场求解');
+  ok(pj.includes("type=\"color\"") || pj.includes("type='color'") || pj.includes('type="color"'),
+    '自定义面板提供取色器');
+
+  // 头部：只有品牌字，没有副标题/版本构建信息
+  ok(!ph.includes('id="ver"'), '头部不再显示版本/构建日期');
+  ok(!pj.includes("$('ver')"), 'popup.js 不再写版本行');
+  ok(!ph.includes('期刊收录标签</h1>'), '头部不再显示「期刊收录标签」副标题');
+  ok(/class="word"/.test(ph), '头部保留 Vega 品牌字');
+  ok(/font-family:[^}]*serif/.test(ph.match(/\.brand\s+\.word\s*\{[^}]*\}/)?.[0] || ''),
+    '品牌字使用衬线字体栈');
+
+  // 图例：1 区块必须带 ★Top（官方规则 1 区 100% Top，图例要长实际的样子）
+  ok(/t:\s*'中科院1区'[^}]*top:\s*true/.test(pj), '图例「中科院1区」带 ★Top');
 }
 
 // ---------------------------------------------------------------- 8. popup 元素

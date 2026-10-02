@@ -402,32 +402,153 @@ function getTheme(id) {
   return THEMES[0];
 }
 
+// ---------------------------------------------------------------- 色彩工具（运行时）
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const hex2rgb = (h) => {
+  const s = h.replace('#', '');
+  return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+};
+const rgb2hex = (c) => '#' + c.map((v) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0')).join('').toUpperCase();
+const mix = (c1, c2, t) => c1.map((v, i) => v * (1 - t) + c2[i] * t);
+const bright = (c) => (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255;
+function lum(c) {
+  const f = (v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+};
+function contrast(c1, c2) {
+  const l1 = lum(c1), l2 = lum(c2);
+  const hi = Math.max(l1, l2), lo = Math.min(l1, l2);
+  return (hi + 0.05) / (lo + 0.05);
+};
+const overWhite = (rgb, a) => mix([255, 255, 255], rgb, a);
+function solveAlpha(baseRgb, targetBright, lo = 0.08, hi = 0.98) {
+  if (bright(overWhite(baseRgb, lo)) < targetBright) return lo;   // 原色已经够暗
+  if (bright(overWhite(baseRgb, hi)) > targetBright) return hi;   // 原色还是太亮
+  let a = lo, b = hi;
+  for (let i = 0; i < 40; i++) {
+    const m = (a + b) / 2;
+    if (bright(overWhite(baseRgb, m)) > targetBright) a = m; else b = m;
+  }
+  return (a + b) / 2;
+};
+function solveFgLight(baseRgb, bgRgb, need = 4.6) {
+  for (let k = 0.30; k <= 0.99; k += 0.01) {
+    const fg = mix(baseRgb, [0, 0, 0], k);
+    if (contrast(fg, bgRgb) >= need) return fg;
+  }
+  return [0, 0, 0];
+};
+const rgbaStr = (rgb, a) => `rgba(${Math.round(rgb[0])}, ${Math.round(rgb[1])}, ${Math.round(rgb[2])}, ${a.toFixed(3)})`;
+
+// ---------------------------------------------------------------- 自定义主题
 /**
- * 把主题套用到某个根元素上（content script 传 document.documentElement）。
- * 用法.css 变量的好处：换色不需要重渲染 DOM，改一组变量整页瞬间生效。
+ * 用户可调的 8 个基础色（扩展版/文字色/渐变全部由此推导）：
+ *   [角色槽位, 生成槽位字母, 界面标签]
  */
-function applyTheme(el, id) {
-  const t = getTheme(id);
-  for (const [role, v] of Object.entries(t.css)) {
+const CUSTOM_KEYS = [["cssci","Y","CSSCI"],["cscd","N","CSCD"],["beike","B","北核"],["cas1","R","中科院 1 区"],["cas2","O","中科院 2 区"],["cas3","T","中科院 3 区"],["cas4","G","中科院 4 区"],["warning","D","预警"]];
+
+/** 自定义模式的出厂色（取 Vega 默认色的 8 个槽位） */
+function customDefaults() {
+  return {"cssci":"#FFCC00","cscd":"#8E8E93","beike":"#007AFF","cas1":"#FF3B30","cas2":"#FF9500","cas3":"#30B0C7","cas4":"#8E8E93","warning":"#FF3B30"};
+}
+
+/** 宽容解析用户输入：#RGB / #RRGGBB / RGB / RRGGBB → 大写 #RRGGBB；非法返回 null */
+function normalizeHex(input) {
+  if (typeof input !== 'string') return null;
+  let s = input.trim().replace(/^#/, '');
+  if (/^[0-9A-Fa-f]{3}$/.test(s)) s = s.split('').map((c) => c + c).join('');
+  if (!/^[0-9A-Fa-f]{6}$/.test(s)) return null;
+  return '#' + s.toUpperCase();
+}
+
+const CUSTOM_TARGET = {"cssci":0.905,"cssciExt":0.945,"cscd":0.855,"cscdExt":0.93,"beike":0.855,"cas1":0.83,"cas2":0.84,"cas3":0.845,"cas4":0.85,"warning":0.835};
+const CUSTOM_ROLES = [["cssci","Y"],["cssciExt","Y"],["cscd","N"],["cscdExt","N"],["beike","B"],["cas1","R"],["cas2","O"],["cas3","T"],["cas4","G"],["warning","D"]];
+
+/**
+ * 由用户色值现场求解一套 light 模式配色。
+ * 规则与生成器完全一致：扩展版用更高的明度目标，双库渐变 = CSSCI→CSCD，
+ * 星标取 2 区色相压深。文字色全部过 WCAG ≥ 4.5。
+ */
+function buildCustom(map) {
+  const d = customDefaults();
+  const F = {};
+  const picked = {};
+  for (const [role] of CUSTOM_KEYS) {
+    const hx = (map && normalizeHex(map[role])) || d[role];
+    picked[role] = hx;
+  }
+  for (const [role, slot] of CUSTOM_KEYS) F[slot] = picked[role];
+
+  const css = {};
+  for (const [role, slot] of CUSTOM_ROLES) {
+    const base = hex2rgb(F[slot]);
+    const target = CUSTOM_TARGET[role];
+    const a = solveAlpha(base, target);
+    const bg = overWhite(base, a);
+    const fg = solveFgLight(base, bg);
+    css[role] = { bg: rgbaStr(base, a), fg: rgb2hex(fg) };
+  }
+
+  let g1 = hex2rgb(F.Y), g2 = hex2rgb(F.N);
+  for (let i = 0; i < 100; i++) {
+    if (contrast(g1, [255, 255, 255]) >= 4.6 && contrast(g2, [255, 255, 255]) >= 4.6) break;
+    g1 = mix(g1, [0, 0, 0], 0.02);
+    g2 = mix(g2, [0, 0, 0], 0.02);
+  }
+  css.both = { bg: 'linear-gradient(135deg, ' + rgb2hex(g1) + ' 0%, ' + rgb2hex(g2) + ' 100%)', fg: '#FFFFFF' };
+  const m1 = mix(g1, [255, 255, 255], 0.34), m2 = mix(g2, [255, 255, 255], 0.34);
+  css.bothMixed = {
+    bg: 'linear-gradient(135deg, ' + rgb2hex(m1) + ' 0%, ' + rgb2hex(m2) + ' 100%)',
+    fg: (contrast(m1, [255, 255, 255]) >= 4.5 && contrast(m2, [255, 255, 255]) >= 4.5)
+      ? '#FFFFFF'
+      : rgb2hex(solveFgLight(mix(m1, m2, 0.5), mix(m1, m2, 0.5))),
+  };
+  css.star = rgb2hex(mix(hex2rgb(F.O), [0, 0, 0], 0.30));
+
+  return { id: 'custom', name: '自定义', en: 'Custom', desc: '', source: '', mode: 'light', css, custom: picked };
+}
+
+// ---------------------------------------------------------------- 应用
+/** 把一份 css（getTheme 或 buildCustom 的产物）套到根元素上 */
+function applyCss(el, css, id) {
+  for (const [role, v] of Object.entries(css)) {
     if (role === 'star') { el.style.setProperty('--vega-star', v); continue; }
     const name = varName(role);
     el.style.setProperty(name + '-bg', v.bg);
     el.style.setProperty(name + '-fg', v.fg);
   }
-  el.setAttribute('data-vega-theme', t.id);
+  el.setAttribute('data-vega-theme', id);
+}
+
+/**
+ * 把主题套用到某个根元素上（content script 传 document.documentElement）。
+ * id 为 'custom' 时传用户色值表 customMap，现场求解后套用。
+ * 用 CSS 变量的好处：换色不需要重渲染 DOM，改一组变量整页瞬间生效。
+ */
+function applyTheme(el, id, customMap) {
+  if (id === 'custom') {
+    const t = buildCustom(customMap);
+    applyCss(el, t.css, 'custom');
+    return t;
+  }
+  const t = getTheme(id);
+  applyCss(el, t.css, t.id);
   return t;
 }
 
 /** 生成 popover / 图例用的内联样式串（popup 与 selftest 复用） */
-function inlineStyle(themeId, badgeKey) {
+function inlineStyle(themeId, badgeKey, customMap) {
   const role = ROLE[badgeKey] || 'cscd';
-  const v = getTheme(themeId).css[role];
+  const v = (themeId === 'custom' ? buildCustom(customMap).css : getTheme(themeId).css)[role];
   return 'background:' + v.bg + ';color:' + v.fg;
 }
 
 if (typeof window !== 'undefined') {
-  window.VegaThemes = { THEMES, DEFAULT_THEME, ROLE, varName, getTheme, applyTheme, inlineStyle };
+  window.VegaThemes = { THEMES, DEFAULT_THEME, ROLE, varName, getTheme, applyTheme, applyCss, inlineStyle, buildCustom, customDefaults, normalizeHex, CUSTOM_KEYS };
 }
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { THEMES, DEFAULT_THEME, ROLE, varName, getTheme, applyTheme, inlineStyle };
+  module.exports = { THEMES, DEFAULT_THEME, ROLE, varName, getTheme, applyTheme, applyCss, inlineStyle, buildCustom, customDefaults, normalizeHex, CUSTOM_KEYS };
 }

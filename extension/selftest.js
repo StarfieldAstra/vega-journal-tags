@@ -155,9 +155,10 @@
   function badges(res) {
     // 与弹窗、页面共用同一份配色数据，避免三处脱色；
     // 未传 STYLE 的老版本降级保留，这里一律走 themes.js。
-    const t = (window.VegaThemes && window.VegaThemes.getTheme)
-      ? window.VegaThemes.getTheme(window.__vegaTheme || 'vega')
-      : null;
+    const VT = window.VegaThemes || {};
+    const t = (window.__vegaTheme === 'custom' && VT.buildCustom)
+      ? VT.buildCustom(window.__vegaCustom || null)
+      : (VT.getTheme ? VT.getTheme(window.__vegaTheme || 'vega') : null);
     const css = t ? t.css : {};
     return (res.badges || [])
       .map((b) => {

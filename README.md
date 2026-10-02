@@ -28,20 +28,21 @@
 
 > **为什么 2 区也可能带 ★Top？** 中科院的官方规则是「1 区期刊全部进 Top，2 区择优进 Top」。所以本插件对**任何分区**都显示 ★Top —— 曾经以为只有 1 区才有，核对源数据后发现 2 区有 338 本 Top（如 ADDICTION、Advanced Healthcare Materials），1 区则是 1451/1451 全量入选。
 
-## 六套配色，随时切换
+## 六套配色 + 自定义，随时切换
 
-弹窗里点一下即换，已打开的页面**不用刷新**瞬间变色。全部配色由脚本按 **WCAG 对比度 ≥ 4.5:1** 现算生成，视觉重量对齐：
+弹窗里**平铺展示、一屏可见**，点一下即换，已打开的页面**不用刷新**瞬间变色。全部配色由脚本按 **WCAG 对比度 ≥ 4.5:1** 现算生成，视觉重量对齐：
 
-| 色卡 | 风格 | 色源 |
-|---|---|---|
-| Vega 默认 | iOS 语义淡彩 | iOS Human Interface Guidelines |
-| Nord 晨雾 | 低饱和冷调 | 变色库 #6 + Nord Aurora |
-| 清泉 | 通透蓝绿 | 变色库 #36 + #37 |
-| 沙丘暖阳 | 大地暖色 | 变色库 #4 + #14 |
-| 素墨 | 近灰度、最安静 | 变色库 #20 去饱和改写 |
-| 墨黑夜航 | 黑底亮字，与 logo 同语言 | 黑底重制版 |
+| 色卡 | 风格 |
+|---|---|
+| Vega 默认 | iOS 语义淡彩 |
+| Nord 晨雾 | 低饱和冷调 |
+| 清泉 | 通透蓝绿 |
+| 沙丘暖阳 | 大地暖色 |
+| 素墨 | 近灰度、最安静 |
+| 墨黑夜航 | 黑底亮字，与 logo 同语言 |
+| **自定义** | 8 个基础色（CSSCI / CSCD / 北核 / 1–4 区 / 预警）支持输入 `#RGB` / `#RRGGBB` 色值，扩展版、文字色、双库渐变全部自动推导，同样保证对比度达标 |
 
-「变色库 #N」指科研绘图配色库 `references/color_schemes.py` 里的第 N 套，见 `tools/build_themes.js`。
+配色来源见 `tools/build_themes.js`（科研绘图配色库的编号色卡 + iOS 系统色）。
 
 ## 它不显示什么
 
@@ -87,8 +88,8 @@
 ## 开发
 
 ```bash
-node validate.js           # 发布前静态校验（491 项：manifest / MV3 资源声明 / match pattern / 残留词 / 配色一致性）
-node test_judge.js         # 判定引擎单元测试（89 项，含 Top 分布回归）
+node validate.js           # 发布前静态校验（537 项：manifest / MV3 资源声明 / match pattern / 残留词 / 配色一致性 / 选择器布局）
+node test_judge.js         # 判定引擎单元测试（134 项，含 Top 分布回归与自定义主题求解）
 node tools/build_themes.js # 改配色后重生成 core/themes.js（自动反解 alpha 与文字色、输出对比度报告）
 node tools/make_logo.js    # 重生成全部尺寸 logo（纯 Node 栅格化，无第三方依赖）
 node build_release.js      # 隐私扫描 + 生成 release/（打包需手动跑 7z）
@@ -108,8 +109,9 @@ python tools/slim_data.py <源 journals.json>
 4. **CSSCI 与 CSCD 必须合并成一个标签。** 拆成两个时，在知网这类窄列里第二个常被 `overflow:hidden` 裁掉，看起来就像"少了一个库"。
 5. **所有标签的尺寸属性要全部统一**：`height / font-size / border-radius / padding / font-weight / letter-spacing`。字重与字距也会影响渲染宽度，只统一字号和高度是不够的。
 6. **配色只能有一份事实来源。** 页面标签、弹窗图例、说明页示例三处都从 `core/themes.js` 取色 —— 曾经三处各写一份 hex，换色时漏改一处，出现"图例是一种颜色、标签是另一种"。`validate.js` 现在会核对 `:root` 默认值与默认色卡逐项一致。
-7. **star 星形别用二次贝塞尔拼。** 从尖端到尖端的贝塞尔，腰部最细只能到 ~0.35R，出来永远是圆角菱形。要星芒感得用幂函数曲线 `|x/R|^p + |y/R|^p = 1`（p 越小越锐），见 `tools/make_logo.js`。
+7. **字母标用「等宽描边 + 斜接」画，别靠字体。** logo 是折线 A→B→C 的等宽描边（miter join），外轮廓取路径左侧、字怀取右侧 —— 不依赖任何字体文件，16px 下也不会糊。曾经用幂函数星形（`|x/R|^p+|y/R|^p=1`），v1.2 起改为学习 ZCode 的「黑底圆角方块 + 白色粗体字母」语言，见 `tools/make_logo.js`。
 8. **别依赖 chrome.storage 回调的异步性。** 初始化逻辑要放在 IIFE 末尾、所有定义之后 —— 否则哪天回调同步执行（或测试里 mock 成同步），就会踩"用到还没初始化的 const"的雷。
+9. **自定义主题的颜色必须现场求解，不能让用户直接填 bg/fg。** 用户只给 8 个基础色，扩展版明度、文字色（WCAG ≥ 4.5）、双库渐变全部用与生成器同一套函数推导（`Function.prototype.toString` 序列化进 themes.js，两边永不漂移）。让用户直接填文字色，必然出现浅色配浅色这种读不了的组合。
 
 ## 许可
 

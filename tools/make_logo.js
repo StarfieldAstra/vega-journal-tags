@@ -8,12 +8,14 @@
  * 用法：
  *   node tools/make_logo.js            # 生成全部尺寸
  *   node tools/make_logo.js 512        # 只生成某尺寸，便于对比
+ *   node tools/make_logo.js 512 --stroke=104 --wide=176 --slant=0.04
+ *                                      # 调参试样（只影响本次输出）
  *
- * 设计说明：
- *   黑底圆角方块 + 白色四芒星。
- *   黑底取插件名 Vega（织女星）—— 夜空里的导航星，Historically 也是
- *   天文测光里的「星等零点」；白色四芒星是它最简洁的几何抽象：
- *   四条二次贝塞尔从尖端到尖端内凹收腰，比五角星更接近星芒的物理形态。
+ * 设计说明（v2，2026-10）：
+ *   学习 ZCode（智谱 AI 编辑器）的 logo 语言 —— 近黑圆角方块 + 一枚白色
+ *   超粗体几何字母，除此之外无任何装饰。ZCode 用首字母 Z，Vega 用首字母 V：
+ *   等宽笔画 + 斜接尖角（miter join），字怀干净，远看是一块白色箭头形，
+ *   近看是 V。星芒/圆环等天文意象全部舍弃 —— 极简字形即品牌。
  */
 
 const fs = require('fs');
@@ -26,30 +28,83 @@ const BOX = 512;
 const C = 256;
 
 const DESIGN = {
-  corner: 112,        // 背景圆角（≈22%，接近 iOS 图标的比例）
-  bgInner: [21, 22, 26],   // 背景中心色（径向渐变的内圈）
-  bgOuter: [5, 5, 7],      // 背景边缘色
-  R: 150,             // 星芒尖端半径
-  pinch: 0.42,        // 收腰指数：|x|^p + |y|^p = R^p 的 p。
-                      // p=1 菱形，p→0 细长星芒。0.42 是「一眼是星、又够粗壮」的折中。
-  ring: { r: 208, w: 5, opacity: 0.20 },    // 外围细环：暗指「星等」刻度
+  corner: 112,             // 背景圆角（≈22%，接近 iOS 图标的比例）
+  bgInner: [22, 23, 27],   // 背景中心色（径向渐变的内圈）
+  bgOuter: [10, 10, 13],   // 背景边缘色
+  // —— 白色字母 V（三线段折线 A→B→C 的等宽描边 + 斜接）——
+  yTop: 116,               // 顶边 y
+  yApex: 396,              // 尖角 y
+  halfW: 162,              // 半宽：顶左角 (C-halfW, yTop)，顶右角 (C+halfW, yTop)
+  stroke: 112,             // 笔画宽（垂直于笔画方向量取）——ZCode 的 Z 笔画极粗，
+                           // 16px 小图上细笔画会糊，112 在各尺寸都立得住
+  shear: 0.0,              // 整体斜切量（x' = x - shear*(y-C)），0 = 正体
 };
+
+// CLI 参数覆盖（调参试样用）：--stroke=104 --wide=176 --slant=0.04
+for (const a of process.argv.slice(3)) {
+  const m = a.match(/^--(stroke|wide|slant)=(.+)$/);
+  if (!m) continue;
+  const v = parseFloat(m[2]);
+  if (m[1] === 'stroke') DESIGN.stroke = v;
+  if (m[1] === 'wide') DESIGN.halfW = v;
+  if (m[1] === 'slant') DESIGN.shear = v;
+}
 
 // ---------------------------------------------------------------- 几何
 /**
- * 星形曲线：|x/R|^p + |y/R|^p = 1（超椭圆家族的 p<1 分支）
- * 之所以不用二次贝塞尔：贝塞尔从尖端到尖端，腰部最细只能到 ~0.35R，
- * 出来永远是「圆角菱形」而不是星芒；幂曲线要多少细由 p 直接控制，
- * 尖端锐利、腰部干净，且点内测试一行就能写完。
+ * 字母 V = 折线 (C-halfW, yTop) → (C, yApex) → (C+halfW, yTop) 的等宽描边。
+ * 外轮廓 = 路径左侧（V 的外部）+ 尖角外斜接；
+ * 内轮廓 = 路径右侧 + 尖角内斜接（字怀）。
+ * 全是闭多边形 + 射线法点内测试，无贝塞尔、无字体依赖。
  */
-function inStar(x, y, opts) {
+const LETTER_POLY = (() => {
+  const A = [C - DESIGN.halfW, DESIGN.yTop];
+  const B = [C, DESIGN.yApex];
+  const D = [C + DESIGN.halfW, DESIGN.yTop];
+  const sub = (p, q) => [p[0] - q[0], p[1] - q[1]];
+  const len = (v) => Math.hypot(v[0], v[1]);
+  const norm = (v) => { const l = len(v); return [v[0] / l, v[1] / l]; };
+  // 左法线（路径前进方向逆时针 90°）
+  const left = (u) => [-u[1], u[0]];
+
+  const u1 = norm(sub(B, A));          // 左臂方向（下行）
+  const u2 = norm(sub(D, B));          // 右臂方向（上行）
+  const n1 = left(u1), n2 = left(u2);  // 外侧法线
+  const half = DESIGN.stroke / 2;
+
+  // 尖角斜接：角平分线方向 × 1/cos(半角)
+  const bis = norm([n1[0] + n2[0], n1[1] + n2[1]]);
+  const cosHalf = bis[0] * n1[0] + bis[1] * n1[1];
+  const miter = half / cosHalf;
+
+  return [
+    [A[0] + n1[0] * half, A[1] + n1[1] * half],   // 顶左外
+    [B[0] + bis[0] * miter, B[1] + bis[1] * miter], // 尖角外（斜接）
+    [D[0] + n2[0] * half, D[1] + n2[1] * half],   // 顶右外
+    [D[0] - n2[0] * half, D[1] - n2[1] * half],   // 顶右内
+    [B[0] - bis[0] * miter, B[1] - bis[1] * miter], // 字怀尖（内斜接）
+    [A[0] - n1[0] * half, A[1] - n1[1] * half],   // 顶左内
+  ];
+})();
+
+/** 射线法点内测试（多边形顶点顺时针/逆时针均可） */
+function inPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1];
+    const xj = poly[j][0], yj = poly[j][1];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function inLetter(x, y, opts) {
   const k = (opts && opts.scale) || 1;
-  const R = DESIGN.R * k;
-  const dx = Math.abs(x - C) / R;
-  const dy = Math.abs(y - C) / R;
-  if (dx > 1 || dy > 1) return false;              // 快速排除
-  const p = DESIGN.pinch;
-  return Math.pow(dx, p) + Math.pow(dy, p) <= 1;
+  if (k !== 1) { x = C + (x - C) / k; y = C + (y - C) / k; }
+  if (DESIGN.shear) x = x + DESIGN.shear * (y - C);
+  return inPoly(x, y, LETTER_POLY);
 }
 
 /** 圆角矩形的内部/边界判定（返回到边界的有符号距离，≤0 表示在内部） */
@@ -74,16 +129,8 @@ function sample(x, y, opts) {
   let cb = o[2] + (i[2] - o[2]) * (1 - t);
   let sr = 0, sg = 0, sb = 0, sw = 0;              // 白色图元的累计权重
 
-  // 外围细环 —— 只在 ≥48px 时画；再小它会糊成一圈灰，反而显脏
-  if (opts.ring) {
-    const rr = DESIGN.ring;
-    const distC = Math.hypot(x - C, y - C);
-    const dr = Math.abs(distC - rr.r) - rr.w / 2;
-    if (dr < 0) { const w = rr.opacity; sr += 255 * w; sg += 255 * w; sb += 255 * w; sw += w; }
-  }
-
-  // 四芒星
-  if (inStar(x, y, opts)) { sr += 255; sg += 255; sb += 255; sw += 1; }
+  // 字母 V
+  if (inLetter(x, y, opts)) { sr += 255; sg += 255; sb += 255; sw += 1; }
 
   const w = Math.min(1, sw);
   // 抗锯齿：背景边缘用 smoothstep 淡出，避免圆角处出现硬锯齿
@@ -93,11 +140,8 @@ function sample(x, y, opts) {
 
 function render(size) {
   const SS = size <= 24 ? 10 : size <= 64 ? 6 : 4;   // 小图多采样，保证边缘干净
-  // 小尺寸自适应：细环删掉、星体放大 —— 16px 的工具栏图标上，
-  // 细环会退化成一圈脏灰，星体若还按 512 的比例只占三成就什么都看不清。
-  const opts = size >= 48
-    ? { ring: true }
-    : { ring: false, scale: 1.14 };
+  // 小尺寸自适应：字宽放大 —— 16px 的工具栏图标上，笔画按 512 比例会糊成一块
+  const opts = { scale: size >= 48 ? 1.0 : size >= 32 ? 1.06 : 1.14 };
   const out = new Uint8Array(size * size * 4);
   const scale = BOX / size;
   let p = 0;

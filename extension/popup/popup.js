@@ -27,35 +27,49 @@
   const ROLE = Themes.ROLE || {};
 
   let curTheme = Themes.DEFAULT_THEME || 'vega';
+  // 自定义模式的当前色值表（null = 还没动过，用出厂色）
+  let curCustom = null;
+
+  /** 当前生效的主题对象：自定义模式现场求解，其余按 id 取 */
+  function currentTheme() {
+    if (curTheme === 'custom' && Themes.buildCustom) return Themes.buildCustom(curCustom);
+    return Themes.getTheme ? Themes.getTheme(curTheme) : null;
+  }
 
   // 预览条：挑这套色卡里最有代表性的 6 枚，冷暖浓淡一眼看得出
   const PREVIEW = ['both', 'cssci', 'beike', 'cas1', 'cas2', 'cas3'];
 
+  function swatchHTML(t) {
+    const css = t.css;
+    const bars = PREVIEW.map((r) => '<i style="background:' + css[r].bg + '"></i>').join('');
+    return (
+      '<button class="th" type="button" data-id="' + esc(t.id) + '" ' +
+      'aria-pressed="' + (t.id === curTheme ? 'true' : 'false') + '">' +
+      '<span class="th-bar">' + bars + '</span>' +
+      '<span class="th-nm">' + esc(t.name) + '</span></button>'
+    );
+  }
+
   function renderThemePicker() {
     const box = $('themes');
     if (!box || !Themes.THEMES) return;
-    box.innerHTML = Themes.THEMES.map((t) => {
-      const bars = PREVIEW.map((r) => '<i style="background:' + t.css[r].bg + '"></i>').join('');
-      return (
-        '<button class="th" type="button" data-id="' + esc(t.id) + '" ' +
-        'aria-pressed="' + (t.id === curTheme ? 'true' : 'false') + '">' +
+    let html = Themes.THEMES.map(swatchHTML).join('');
+    // 「自定义」永远排在最后：虚线框 + 当前自定义色预览
+    if (Themes.buildCustom) {
+      const ct = Themes.buildCustom(curCustom);
+      const bars = PREVIEW.map((r) => '<i style="background:' + ct.css[r].bg + '"></i>').join('');
+      html +=
+        '<button class="th th-custom" type="button" data-id="custom" ' +
+        'aria-pressed="' + (curTheme === 'custom' ? 'true' : 'false') + '">' +
         '<span class="th-bar">' + bars + '</span>' +
-        '<span class="th-nm">' + esc(t.name) + '</span></button>'
-      );
-    }).join('');
+        '<span class="th-nm">自定义</span></button>';
+    }
+    box.innerHTML = html;
 
     box.querySelectorAll('.th').forEach((b) => {
       b.addEventListener('click', () => pickTheme(b.getAttribute('data-id')));
     });
-    showThemeDesc();
-  }
-
-  function showThemeDesc() {
-    const t = Themes.getTheme ? Themes.getTheme(curTheme) : null;
-    if (!t) return;
-    $('themeDesc').innerHTML =
-      '<b>' + esc(t.name) + '</b> · ' + esc(t.desc) + '<br>' +
-      '<span style="color:var(--gray2)">色源：' + esc(t.source) + '</span>';
+    renderCustomPanel();
   }
 
   function pickTheme(id) {
@@ -68,8 +82,70 @@
     });
   }
 
+  // ------------------------------------------------------------ 自定义配色
+  function renderCustomPanel() {
+    const panel = $('customPanel');
+    if (!panel) return;
+    const show = curTheme === 'custom' && !!Themes.buildCustom;
+    panel.style.display = show ? 'block' : 'none';
+    if (!show) return;
+
+    const map = Object.assign({}, Themes.customDefaults(), curCustom || {});
+    const keys = Themes.CUSTOM_KEYS || [];
+    $('customColors').innerHTML = keys.map(([role, , label]) => {
+      const v = map[role] || '';
+      return (
+        '<div class="cc-row">' +
+        '<span class="cc-lb">' + esc(label) + '</span>' +
+        '<input type="color" data-role="' + esc(role) + '" value="' + esc(v) + '">' +
+        '<input type="text" class="cc-hex" data-role="' + esc(role) + '" value="' + esc(v) + '" ' +
+        'maxlength="7" spellcheck="false" autocomplete="off"></div>'
+      );
+    }).join('');
+
+    $('customColors').querySelectorAll('input[type="color"]').forEach((inp) => {
+      inp.addEventListener('input', () => {
+        setCustomColor(inp.getAttribute('data-role'), inp.value);
+        const hex = $('customColors').querySelector('.cc-hex[data-role="' + inp.getAttribute('data-role') + '"]');
+        if (hex) { hex.value = inp.value.toUpperCase(); hex.classList.remove('cc-bad'); }
+      });
+    });
+    $('customColors').querySelectorAll('.cc-hex').forEach((inp) => {
+      inp.addEventListener('input', () => {
+        const role = inp.getAttribute('data-role');
+        const ok = Themes.normalizeHex(inp.value);
+        inp.classList.toggle('cc-bad', !ok);
+        if (ok) {
+          setCustomColor(role, ok);
+          const col = $('customColors').querySelector('input[type="color"][data-role="' + role + '"]');
+          if (col) col.value = ok;
+        }
+      });
+    });
+  }
+
+  /** 改一个槽位色：更新本地表 → 存 storage → 图例/预览条即时重刷 */
+  function setCustomColor(role, hex) {
+    curCustom = Object.assign({}, Themes.customDefaults(), curCustom || {});
+    curCustom[role] = hex;
+    chrome.storage.local.set({ theme: 'custom', custom: curCustom }, () => {
+      renderThemePicker();
+      renderLegend();
+    });
+  }
+
+  function resetCustom() {
+    curCustom = null;
+    chrome.storage.local.set({ custom: null }, () => {
+      renderThemePicker();
+      renderLegend();
+    });
+  }
+
   // ------------------------------------------------------------ 标签图例
-  // 文字与 style.css 的 .vega-<key> 一一对应（validate.js 会校验两边不脱节）
+  // 文字与 style.css 的 .vega-<key> 一一对应（validate.js 会校验两边不脱节）。
+  // top:true 的条目渲染成「名称 ★Top」——1 区按官方规则 100% 是 Top，
+  // 图例里就该长它实际的样子。
   const LEGEND = [
     { t: 'CSSCI+CSCD', k: 'both-core' },
     { t: 'CSSCI+CSCD 混合', k: 'both-mixed' },
@@ -78,17 +154,21 @@
     { t: 'CSCD', k: 'cscd-core' },
     { t: 'CSCD扩展', k: 'cscd-ext' },
     { t: '北核', k: 'beike' },
-    { t: '中科院1区', k: 'cas-1' },
+    { t: '中科院1区', k: 'cas-1', top: true },
     { t: '中科院2区', k: 'cas-2' },
     { t: '中科院3区', k: 'cas-3' },
     { t: '中科院4区', k: 'cas-4' },
     { t: '预警', k: 'warning' },
   ];
 
+  function starSpan(css) {
+    return '<span style="color:' + css.star + ';font-weight:600">★</span>';
+  }
+
   function renderLegend() {
     const el = $('legend');
     if (!el) return;
-    const t = Themes.getTheme ? Themes.getTheme(curTheme) : null;
+    const t = currentTheme();
     const css = t ? t.css : {};
     let html = LEGEND.map((b) => {
       const v = css[ROLE[b.k]];
@@ -97,14 +177,15 @@
       let style = 'background:' + v.bg + ';color:' + v.fg;
       if (b.k === 'warning') style += ';font-weight:600';
       if (b.k === 'both-core' || b.k === 'both-mixed') style += ';font-weight:600';
+      if (b.top) label += ' ' + starSpan(css) + 'Top';
       return '<span class="chip" style="' + style + '">' + label + '</span>';
     }).join('');
 
-    // Top 用星标单独说明：它不是第 13 类标签，而是挂在分区标签上的标记
-    if (t) {
+    // 2 区也有 Top（约 12%），单独放一个示例块说明它不是 1 区专属
+    if (t && css.cas2) {
       html +=
         '<span class="chip" style="background:' + css.cas2.bg + ';color:' + css.cas2.fg + '">' +
-        '中科院2区 <span style="color:' + t.css.star + ';font-weight:600">★</span>Top</span>';
+        '中科院2区 ' + starSpan(css) + 'Top</span>';
     }
     el.innerHTML = html;
 
@@ -116,6 +197,9 @@
         '所以本插件对任何分区都显示 ★Top，不只是 1 区。';
     }
   }
+
+  const customResetBtn = $('customReset');
+  if (customResetBtn) customResetBtn.addEventListener('click', resetCustom);
 
   // ------------------------------------------------------------ 开关
   const cb = $('enabled');
@@ -238,7 +322,6 @@
   readData('journals.json')
     .then((d) => {
       const m = d.meta, c = m.counts;
-      $('ver').textContent = '数据 v' + m.version + ' · 构建于 ' + m.built;
       const rows = [
         ['CSSCI 来源版', c.cssciSource],
         ['CSSCI 扩展版', c.cssciExt],
@@ -263,7 +346,6 @@
         '此后不会变化。<br>本插件仅呈现公开收录信息，不作任何期刊分级评价。';
     })
     .catch((e) => {
-      $('ver').textContent = '数据加载失败';
       $('warn').style.display = 'block';
       $('warn').innerHTML =
         '<b>无法读取内置数据集</b><br>' + esc(e.message) +
@@ -274,8 +356,9 @@
   // ------------------------------------------------------------ 初始化
   // 放在 IIFE 末尾：所有函数都已定义，不依赖 chrome.storage 回调的异步性
   // —— 哪怕哪天回调变成同步的，也不会踩「用到还没初始化的 const」这种雷。
-  chrome.storage.local.get({ theme: Themes.DEFAULT_THEME || 'vega' }, (st) => {
+  chrome.storage.local.get({ theme: Themes.DEFAULT_THEME || 'vega', custom: null }, (st) => {
     if (st && st.theme) curTheme = st.theme;
+    if (st && st.custom) curCustom = st.custom;
     renderThemePicker();
     renderLegend();
   });
