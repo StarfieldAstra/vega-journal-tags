@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vega · 期刊收录标签 — 使用说明</title>
+<style>
+  /* Apple HIG 风格说明页 */
+  :root {
+    color-scheme: light;
+    --blue: #007AFF;
+    --green: #34C759;
+    --red: #FF3B30;
+    --orange: #FF9500;
+    --teal: #30B0C7;
+    --gray: #8E8E93;
+    --label: #1C1C1E;
+    --sep: rgba(60, 60, 67, 0.16);
+    --bg: #F2F2F7;
+    --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+  body {
+    max-width: 780px; margin: 0 auto; padding: 44px 22px 72px;
+    background: var(--bg); color: var(--label);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+      "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 15px; line-height: 1.7;
+  }
+
+  header { margin-bottom: 30px; }
+  h1 { font-size: 30px; font-weight: 700; margin: 0 0 5px; letter-spacing: -0.5px; }
+  .sub { font-size: 15px; color: var(--gray); }
+  .tagline-sub { font-size: 13.5px; color: var(--gray); margin-top: 6px; font-style: italic; }
+
+  h2 {
+    font-size: 19px; font-weight: 600; margin: 38px 0 12px;
+    letter-spacing: -0.2px;
+  }
+  h3 { font-size: 16px; font-weight: 600; margin: 24px 0 8px; }
+
+  p { margin: 10px 0; }
+
+  /* 卡片 */
+  .card {
+    background: var(--card); border-radius: 14px; padding: 18px 20px;
+    margin: 16px 0;
+    box-shadow: 0 0.5px 1px rgba(0,0,0,0.04);
+  }
+
+  /* 提示条 */
+  .note {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px 16px; border-radius: 12px; margin: 16px 0; font-size: 14px;
+    line-height: 1.65;
+  }
+  .note .ic { flex: 0 0 auto; font-size: 16px; line-height: 1.4; }
+  .note.warn { background: rgba(255,149,0,0.12); color: #8A5200; }
+  .note.info { background: rgba(0,122,255,0.1); color: #004E9C; }
+  .note.ok   { background: rgba(52,199,89,0.12); color: #166B33; }
+  .note b { font-weight: 600; }
+
+  /* 表格 */
+  table {
+    width: 100%; border-collapse: collapse; margin: 14px 0;
+    background: var(--card); border-radius: 12px; overflow: hidden;
+    font-size: 14px;
+    box-shadow: 0 0.5px 1px rgba(0,0,0,0.04);
+  }
+  th, td { padding: 11px 15px; text-align: left; vertical-align: top; }
+  th {
+    background: rgba(0,0,0,0.02); font-weight: 600; font-size: 13px;
+    color: var(--gray); border-bottom: 0.5px solid var(--sep);
+  }
+  td + td, th + th { border-left: 0.5px solid var(--sep); }
+  tbody tr + tr td { border-top: 0.5px solid var(--sep); }
+
+  /* 收录标签徽标（与插件内实际样式一致） */
+  .bd {
+    display: inline-flex; align-items: center;
+    padding: 0 8px; height: 21px; border-radius: 6px;
+    font-size: 12px; font-weight: 500; letter-spacing: 0.2px;
+    white-space: nowrap; flex: 0 0 auto;
+  }
+  .both{background:linear-gradient(135deg,#af52de 0%,#d42aa4 100%);color:#fff;font-weight:600}
+  .cssci-s{background:rgba(255,204,0,.38);color:#5C4300}
+  .cssci-e{background:rgba(255,204,0,.24);color:#6B5200}
+  .cscd-c{background:rgba(142,142,147,.38);color:#1C1C1E}
+  .cscd-e{background:rgba(142,142,147,.24);color:#2C2C2E}
+  .bk{background:rgba(0,122,255,.30);color:#004E9C}
+  .z1{background:rgba(255,59,48,.32);color:#A3121A}
+  .z2{background:rgba(255,149,0,.34);color:#8F4000}
+  .z3{background:rgba(48,176,199,.36);color:#005A66}
+  .z4{background:rgba(142,142,147,.36);color:#2C2C2E}
+  .wn{background:rgba(255,59,48,.34);color:#A3121A;font-weight:600}
+
+  code {
+    background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 5px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px; color: #1C1C1E;
+  }
+  ol, ul { padding-left: 22px; margin: 10px 0; }
+  li { margin: 7px 0; }
+
+  .muted { color: var(--gray); font-size: 13.5px; }
+  footer {
+    margin-top: 44px; padding-top: 18px; border-top: 0.5px solid var(--sep);
+    font-size: 13px; color: var(--gray);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Vega · 期刊收录标签</h1>
+  <div class="sub">在知网、Web of Science、Google 学术等平台，直接在刊名旁显示 CSSCI / CSCD / 北核 / 中科院分区标签。</div>
+  <div class="tagline-sub">Vega（织女星）—— 天文学上曾是「星等零点」，所有星的亮度都以它为基准来量；它也是最经典的导航星。</div>
+</header>
+
+<div class="note ok">
+  <span class="ic">✓</span>
+  <div><b>完全本地运行。</b>插件不发起任何网络请求，全部数据内置在你的电脑上，断网也能用，检索记录不会外泄。</div>
+</div>
+
+<div class="note info">
+  <span class="ic">i</span>
+  <div>
+    <b>本插件不做期刊分级。</b>它只呈现公开可查的收录事实，<b>不输出 A1/A2/B1/C 之类的级别</b>，
+    也不内置任何单位的内部目录 —— 分级口径因校而异、随文件更新而变，交给插件"替你定级"反而容易误导。
+  </div>
+</div>
+
+<h2>标签含义</h2>
+<table>
+  <thead><tr><th style="width:110px">标签</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><span class="bd both">CSSCI+CSCD</span></td><td><b>双库收录</b>：同时是 CSSCI 来源版与 CSCD 核心库。紫色渐变是这个插件里最醒目的一个标签 —— 集中投稿时最值得先看这一类。</td></tr>
+    <tr><td><span class="bd cssci-s">CSSCI</span></td><td>CSSCI（中文社会科学引文索引）<b>来源期刊</b>，2025–2026 版</td></tr>
+    <tr><td><span class="bd cssci-e">CSSCI扩展</span></td><td>CSSCI <b>扩展版</b>来源期刊</td></tr>
+    <tr><td><span class="bd cscd-c">CSCD</span></td><td>CSCD（中国科学引文数据库）<b>核心库</b>，2025–2026 版</td></tr>
+    <tr><td><span class="bd cscd-e">CSCD扩展</span></td><td>CSCD <b>扩展库</b></td></tr>
+    <tr><td><span class="bd bk">北核</span></td><td>北京大学《中文核心期刊要目总览》收录</td></tr>
+    <tr><td><span class="bd z1">中科院1区</span></td><td>中科院文献情报中心期刊分区表<b>大类 1 区</b></td></tr>
+    <tr><td><span class="bd z2">中科院2区</span></td><td>大类 2 区</td></tr>
+    <tr><td><span class="bd z3">中科院3区</span></td><td>大类 3 区</td></tr>
+    <tr><td><span class="bd z4">中科院4区</span></td><td>大类 4 区</td></tr>
+    <tr><td><span class="bd z1">中科院1区·Top</span></td><td>该刊同时被标记为 <b>Top 期刊</b>（Top 直接并入分区标签文字，不单独占一个标签位，避免在窄列里被挤掉）</td></tr>
+    <tr><td><span class="bd wn">预警</span></td><td>曾列入中科院《国际期刊预警名单》，点击标签可看年份与原因。<b>投稿前请务必核实</b></td></tr>
+  </tbody>
+</table>
+
+<h2>数据版本</h2>
+<table>
+  <thead><tr><th>数据</th><th>版本</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>CSSCI</td><td>2025–2026</td><td>来源版 + 扩展版</td></tr>
+    <tr><td>CSCD</td><td>2025–2026</td><td>核心库 + 扩展库</td></tr>
+    <tr><td>北大核心</td><td>中文核心期刊要目总览</td><td>北大核心收录刊</td></tr>
+    <tr><td>中科院分区</td><td><b>2025 年版（终版）</b></td><td>含大类分区、Top 标记与小类分区明细</td></tr>
+    <tr><td>国际期刊预警</td><td>2020–2025 累计</td><td>命中即加「预警」标签</td></tr>
+  </tbody>
+</table>
+
+<div class="note warn">
+  <span class="ic">⚠</span>
+  <div><b>中科院分区表已停止更新。</b>中科院文献情报中心公告：自 2026 年起不再更新与发布期刊分区表。本插件内置的 2025 年版是<b>最后一版</b>，此后不会过期，但也<b>不会有新版</b>。</div>
+</div>
+
+<h2>已知局限</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li><b>刊名写法不一致会匹配失败</b>：少数期刊在不同平台写法不同（如「地理学报(北京)」与「地理学报」）。匹配失败时不显示标签，不报错 —— 这是刻意设计的，宁可不显示也不显示错。</li>
+    <li><b>CSSCI 集刊未收录</b>（约 200 余种），集刊不会显示 CSSCI 标签。</li>
+    <li><b>Google 学术</b>会把过长的刊名截断（如「Journal of Ver...」），截断后匹配不到，属正常现象。</li>
+    <li>预警名单是<b>历史累计</b>（2020–2025），不代表该刊当下仍在名单内，请以官方最新公告为准。</li>
+  </ul>
+</div>
+
+<h2>支持的网站</h2>
+<table>
+  <thead><tr><th>网站</th><th>状态</th></tr></thead>
+  <tbody>
+    <tr><td>中国知网 kns.cnki.net</td><td>已适配（含 WebVPN 访问）</td></tr>
+    <tr><td>Web of Science</td><td>已适配（新旧两版界面）</td></tr>
+    <tr><td>Google 学术</td><td>已适配（刊名被截断时可能不显示）</td></tr>
+    <tr><td>百度学术</td><td>已适配</td></tr>
+    <tr><td>ScienceDirect</td><td>已适配</td></tr>
+    <tr><td>PubMed</td><td>已适配</td></tr>
+    <tr><td>Springer Link</td><td>已适配</td></tr>
+    <tr><td>Semantic Scholar</td><td>已适配</td></tr>
+  </tbody>
+</table>
+<p class="muted">网站改版可能导致选择器失效。遇到不显示的情况，在扩展面板点「重新扫描当前页面」；面板底部会显示「本页诊断」，可直接看出是选择器失效还是数据未匹配。</p>
+
+<h2>使用方式</h2>
+<ol>
+  <li>打开浏览器扩展管理页（Chrome / Edge 地址栏输入 <code>chrome://extensions</code> 或 <code>edge://extensions</code>）。</li>
+  <li>开启右上角「开发者模式」。</li>
+  <li>点击「加载已解压的扩展程序」，选择本文件夹（即含有 <code>manifest.json</code> 的 <code>extension</code> 目录）。</li>
+  <li>完成。打开知网或 Google 学术检索，刊名下方即出现标签。</li>
+</ol>
+
+<div class="note info">
+  <span class="ic">i</span>
+  <div>点击任一标签可展开详情：ISSN、学科、收录库、中科院大类分区与<b>小类分区</b>明细、WOS 收录类型、预警年份与原因。</div>
+</div>
+
+<footer>
+  CSSCI 2025–2026｜CSCD 2025–2026｜北大核心｜中科院分区 2025 终版<br>
+  本插件仅呈现公开收录信息，不作任何期刊分级评价。
+</footer>
+
+</body>
+</html>
