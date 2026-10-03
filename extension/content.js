@@ -212,7 +212,7 @@
     html +=
       '<div class="' + NS + '-pop-foot">CSSCI 2025–2026｜CSCD 2025–2026｜' +
       '北大核心｜中科院分区 2025 终版<br>' +
-      '本插件不作任何期刊分级评价。<br>Vega v1.0.0</div>';
+      '本插件不作任何期刊分级评价。<br>Vega v1.0.1</div>';
 
     box.innerHTML = html;
     return box;

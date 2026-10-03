@@ -1,12 +1,14 @@
 # Vega · 期刊收录标签
 
-**v1.0.0** · 在学术检索页面直接查看期刊的公开收录信息。
+**v1.0.1** · 在学术检索页面直接查看期刊的公开收录信息。
 
 Vega 会在刊名旁显示 CSSCI、CSCD、北大核心、中科院分区、Top 及国际期刊预警标签。数据内置，匹配在本地完成，不上传检索记录。
 
-[下载安装包](https://github.com/xby0328/vega-journal-tags/releases/latest/download/vega-journal-tags-v1.0.0.zip) · [版本发布页](https://github.com/xby0328/vega-journal-tags/releases/latest) · [安装说明](INSTALL.md) · [隐私说明](PRIVACY.md)
+[下载安装包](https://github.com/xby0328/vega-journal-tags/releases/latest/download/vega-journal-tags-v1.0.1.zip) · [版本发布页](https://github.com/xby0328/vega-journal-tags/releases/latest) · [安装说明](INSTALL.md) · [隐私说明](PRIVACY.md)
 
 ![Vega 圆角设置面板与公开收录标签](assets/vega-public.png)
+
+v1.0.1 修复未适配页面中工具栏弹窗收缩为窄条的问题，原生弹窗恢复为 336px 宽。已安装用户在扩展管理页重新加载扩展，再刷新检索页面。
 
 ## 能做什么
 
@@ -20,7 +22,7 @@ Vega 会在刊名旁显示 CSSCI、CSCD、北大核心、中科院分区、Top �
 
 ## 安装
 
-1. 下载发布页中的 `vega-journal-tags-v1.0.0.zip`，解压到固定文件夹。
+1. 下载发布页中的 `vega-journal-tags-v1.0.1.zip`，解压到固定文件夹。
 2. 打开 `chrome://extensions` 或 `edge://extensions`，启用开发者模式。
 3. 点击「加载已解压的扩展程序」，选择含 `manifest.json` 的解压目录。
 4. 打开或刷新检索网页即可使用。

@@ -94,13 +94,15 @@
   }
 
   * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-  html { background: transparent; }
+  /* The native popup needs an intrinsic width; viewport units feed its auto-sizing loop. */
+  html { width: 336px; background: transparent; }
+  html[data-embedded="true"] { width: 100%; }
 
   .ui-booting body { visibility: hidden; animation: ui-booting-fallback 0s linear 0.7s forwards; }
   @keyframes ui-booting-fallback { to { visibility: visible; } }
   body.ui-ready { visibility: visible; }
   body {
-    width: min(336px, 100vw); margin: 0;
+    width: 100%; margin: 0;
     background: transparent;
     color: var(--label);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",

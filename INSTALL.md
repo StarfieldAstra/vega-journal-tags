@@ -1,8 +1,8 @@
 # 安装 Vega · 期刊收录标签
 
-当前版本：v1.0.0。
+当前版本：v1.0.1。
 
-1. 解压 `vega-journal-tags-v1.0.0.zip` 到一个固定文件夹。
+1. 解压 `vega-journal-tags-v1.0.1.zip` 到一个固定文件夹。
 2. Chrome 打开 `chrome://extensions`，Edge 打开 `edge://extensions`。
 3. 开启开发者模式，点击「加载已解压的扩展程序」。
 4. 选择解压后含有 `manifest.json` 的文件夹。安装后保留该文件夹。

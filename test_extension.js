@@ -5,6 +5,71 @@ const path=require('path');
 const os=require('os');
 const assert=require('assert/strict');
 
+async function nativePopup(context,worker,page){
+  await page.bringToFront();
+  await worker.evaluate(()=>chrome.action.openPopup());
+  const cdp=await context.browser().newBrowserCDPSession();
+  let target;
+  for(let attempt=0;attempt<40;attempt++){
+    const targets=await cdp.send('Target.getTargets');
+    target=targets.targetInfos.find(t=>t.url.endsWith('/popup/popup.html'));
+    if(target)break;
+    await page.waitForTimeout(50);
+  }
+  assert.ok(target,'Native toolbar popup must stay open on unsupported pages');
+  const {sessionId}=await cdp.send('Target.attachToTarget',{targetId:target.targetId,flatten:false});
+  let nextId=0;
+  async function send(method,params){
+    const id=++nextId;
+    const answer=new Promise((resolve,reject)=>{
+      const listener=event=>{
+        if(event.sessionId!==sessionId)return;
+        const message=JSON.parse(event.message);
+        if(message.id!==id)return;
+        clearTimeout(timer);cdp.off('Target.receivedMessageFromTarget',listener);
+        message.error?reject(new Error(JSON.stringify(message.error))):resolve(message.result);
+      };
+      const timer=setTimeout(()=>{cdp.off('Target.receivedMessageFromTarget',listener);reject(new Error('Native popup CDP timeout'));},5000);
+      cdp.on('Target.receivedMessageFromTarget',listener);
+    });
+    await cdp.send('Target.sendMessageToTarget',{sessionId,message:JSON.stringify({id,method,params})});
+    return answer;
+  }
+  async function evaluate(fn){
+    const result=await send('Runtime.evaluate',{expression:'('+fn.toString()+')()',returnByValue:true,awaitPromise:true});
+    assert.ok(!result.exceptionDetails,JSON.stringify(result.exceptionDetails));
+    return result.result.value;
+  }
+  await evaluate(async()=>{
+    for(let attempt=0;attempt<80&&!document.body.classList.contains('ui-ready');attempt++)await new Promise(resolve=>setTimeout(resolve,50));
+    if(!document.body.classList.contains('ui-ready'))throw new Error('Native popup did not initialize');
+  });
+  return {evaluate,async screenshot(file){const result=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(file,Buffer.from(result.data,'base64'));},async close(){await cdp.send('Target.closeTarget',{targetId:target.targetId});await cdp.detach();}};
+}
+
+async function verifyNativePopup(context,worker,page,shots,name){
+  const popup=await nativePopup(context,worker,page);
+  const bounds=await popup.evaluate(()=>({
+    viewport:innerWidth,body:document.body.getBoundingClientRect().width,
+    shell:document.querySelector('.shell').getBoundingClientRect().width,
+    scroll:document.querySelector('.shell').scrollWidth,
+    mottoRight:document.querySelector('.brand-motto').getBoundingClientRect().right,
+    embedded:document.documentElement.dataset.embedded,
+  }));
+  for(const dimension of ['viewport','body','shell'])assert.ok(Math.abs(bounds[dimension]-336)<=1,dimension+': '+JSON.stringify(bounds));
+  assert.equal(bounds.embedded,'false');
+  assert.ok(bounds.scroll<=336&&bounds.mottoRight<=336,'Native popup must not overflow horizontally');
+  await popup.screenshot(path.join(shots,name+'.png'));
+  await popup.evaluate(()=>document.querySelector('#enabled').click());
+  assert.equal(await worker.evaluate(async()=>(await chrome.storage.local.get('enabled')).enabled),false);
+  await popup.evaluate(()=>document.querySelector('#enabled').click());
+  assert.equal(await worker.evaluate(async()=>(await chrome.storage.local.get('enabled')).enabled),true);
+  await popup.evaluate(()=>document.querySelector('#thToggle').click());
+  assert.equal(await popup.evaluate(()=>document.querySelectorAll('#customColors input[type="color"]').length),8);
+  assert.equal(await popup.evaluate(()=>innerWidth),336);
+  await popup.close();
+}
+
 async function main(){
   const ext=path.resolve(process.env.VEGA_TEST_EXTENSION||path.join(__dirname,'extension'));
   const manifest=JSON.parse(fs.readFileSync(path.join(ext,'manifest.json'),'utf8'));
@@ -17,6 +82,10 @@ async function main(){
     context=await chromium.launchPersistentContext(profile,{channel:'msedge',headless:true,args:['--disable-extensions-except='+ext,'--load-extension='+ext]});
     const worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker',{timeout:15000});
     const id=new URL(worker.url()).hostname;
+    const unsupported=await context.newPage();
+    await unsupported.goto('about:blank');
+    await verifyNativePopup(context,worker,unsupported,shots,'公开版_原生弹窗');
+    console.log('✓ 未适配页面的真实工具栏弹窗宽度 336px，标语完整、开关与自定义色可用');
     const page=await context.newPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
@@ -89,6 +158,21 @@ async function main(){
     assert.equal(await guide.locator('#allBadges .bd').count(),12);
     assert.equal(await guide.locator('#dsBody tr').count(),9);
     await guide.locator('#allBadges').screenshot({path:path.join(shots,'公开版_标签总览.png')});
+    await verifyNativePopup(context,worker,guide,shots,'公开版_说明页工具栏弹窗');
+    // Embedded frames must still fit a narrow page instead of forcing native width.
+    await page.setViewportSize({width:300,height:720});
+    await page.bringToFront();
+    await page.waitForTimeout(250);
+    await worker.evaluate(()=>chrome.action.openPopup());
+    await page.locator('[data-vega-settings-host]').waitFor({state:'visible'});
+    const narrow=page.frames().find(f=>f.url().includes('embedded=1'));
+    await narrow.locator('body.ui-ready').waitFor();
+    const narrowWidth=await narrow.evaluate(()=>({viewport:innerWidth,body:document.body.getBoundingClientRect().width}));
+    assert.equal(narrowWidth.viewport,268);
+    assert.equal(narrowWidth.body,268);
+    await narrow.locator('body').press('Escape');
+    await page.locator('[data-vega-settings-host]').waitFor({state:'detached'});
+    console.log('✓ 扩展说明页回退弹窗和窄屏网页内嵌面板尺寸正确');
     assert.equal(errors.length,0,errors.join(';'));
     console.log('✓ 刷新保留设置、说明页十二种标签和公开数据计数，无 JS 异常'+(restrictive?'（严格 CSP）':''));
   }finally{
