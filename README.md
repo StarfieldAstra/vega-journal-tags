@@ -1,119 +1,63 @@
 # Vega · 期刊收录标签
 
-> Vega（织女星）—— 天文学上曾是**「星等零点」**，所有星的亮度都以它为基准来量；它也是最经典的导航星。
-> 这个插件做的是同一件事：给期刊一把可比的标尺，为投稿指路。
+**v1.0.0** · 在学术检索页面直接查看期刊的公开收录信息。
 
-一个浏览器扩展。在知网、Web of Science、Google 学术等学术检索平台，直接在检索结果的刊名下方显示这本刊的**公开收录标签**。
+Vega 会在刊名旁显示 CSSCI、CSCD、北大核心、中科院分区、Top 及国际期刊预警标签。数据内置，匹配在本地完成，不上传检索记录。
 
-```
-地理学报                      人文经济地理
-[CSSCI+CSCD] [北核]
-```
+[下载安装包](https://github.com/xby0328/vega-journal-tags/releases/latest/download/vega-journal-tags-v1.0.0.zip) · [版本发布页](https://github.com/xby0328/vega-journal-tags/releases/latest) · [安装说明](INSTALL.md) · [隐私说明](PRIVACY.md)
 
----
+![Vega 圆角设置面板与公开收录标签](assets/vega-public.png)
 
-## 它显示什么
+## 能做什么
 
-| 标签 | 含义 |
-|---|---|
-| `CSSCI+CSCD` | **双库收录** —— 同时是 CSSCI 来源版与 CSCD 核心库。实色渐变，全插件最醒目 |
-| `CSSCI` / `CSSCI扩展` | CSSCI（中文社会科学引文索引）来源版 / 扩展版，2025–2026 |
-| `CSCD` / `CSCD扩展` | CSCD（中国科学引文数据库）核心库 / 扩展库，2025–2026 |
-| `北核` | 北京大学《中文核心期刊要目总览》 |
-| `中科院1区` … `中科院4区` | 中科院文献情报中心期刊分区表大类分区（2025 年版终版） |
-| `★Top` | 该刊同时入选分区表 **Top 期刊**，以 ★ 挂在分区标签上（1 区全部是 Top；2 区约 12% 择优入选；3、4 区不设） |
-| `预警` | 曾列入中科院《国际期刊预警名单》，点击标签可看年份与原因 |
+- 显示 CSSCI 来源版 / 扩展版、CSCD 核心库 / 扩展库、北大核心、中科院大类分区和 Top、国际期刊预警。
+- 双库收录合并为一枚标签；点击标签查看 ISSN、学科、小类分区和预警明细。
+- 五项公开来源开关、一组清新默认配色、八类自定义基础色。
+- 完整圆角设置面板，浅色、深色与跟随系统主题。
+- 本地运行，不使用外部匹配服务，不收集或上传浏览记录。
 
-点击任一标签，展开详情：ISSN、学科、收录库、**中科院小类分区**明细、WOS 收录类型、预警年份与原因。
-
-> **为什么 2 区也可能带 ★Top？** 中科院的官方规则是「1 区期刊全部进 Top，2 区择优进 Top」。所以本插件对**任何分区**都显示 ★Top —— 曾经以为只有 1 区才有，核对源数据后发现 2 区有 338 本 Top（如 ADDICTION、Advanced Healthcare Materials），1 区则是 1451/1451 全量入选。
-
-## 六套配色 + 自定义，随时切换
-
-弹窗里**平铺展示、一屏可见**，点一下即换，已打开的页面**不用刷新**瞬间变色。全部配色由脚本按 **WCAG 对比度 ≥ 4.5:1** 现算生成，视觉重量对齐：
-
-| 色卡 | 风格 |
-|---|---|
-| Vega 默认 | iOS 语义淡彩 |
-| Nord 晨雾 | 低饱和冷调 |
-| 清泉 | 通透蓝绿 |
-| 沙丘暖阳 | 大地暖色 |
-| 素墨 | 近灰度、最安静 |
-| 墨黑夜航 | 黑底亮字，与 logo 同语言 |
-| **自定义** | 8 个基础色（CSSCI / CSCD / 北核 / 1–4 区 / 预警）支持输入 `#RGB` / `#RRGGBB` 色值，扩展版、文字色、双库渐变全部自动推导，同样保证对比度达标 |
-
-配色来源见 `tools/build_themes.js`（科研绘图配色库的编号色卡 + iOS 系统色）。
-
-## 它不显示什么
-
-**不显示任何期刊级别（A1/A2/A3/B1/C…）。**
-
-分级口径因校而异、随文件更新而变，把「替你定级」这件事交给插件反而容易误导。本插件只呈现公开可查的收录事实，不内置任何单位的内部目录。
-
-如果你需要按本单位文件判级别，那是另一个问题，请查你们科研处的正式文件。
+适配域名包括知网、Web of Science / Clarivate、Google 学术、百度学术、ScienceDirect、PubMed、Springer Link 和 Semantic Scholar。网站调整页面结构时，部分页面的匹配可能受影响。
 
 ## 安装
 
-1. 到 [Releases](../../releases) 下载 `vega-journal-tags-v*.zip`，解压到本地任意文件夹。
-2. Chrome / Edge 地址栏输入 `chrome://extensions`（Edge 是 `edge://extensions`）。
-3. 打开右上角**开发者模式**。
-4. 点**「加载已解压的扩展程序」**，选择解压后**含有 `manifest.json` 的那一层目录**。
-5. 打开知网检索，刊名下方即出现标签。
+1. 下载发布页中的 `vega-journal-tags-v1.0.0.zip`，解压到固定文件夹。
+2. 打开 `chrome://extensions` 或 `edge://extensions`，启用开发者模式。
+3. 点击「加载已解压的扩展程序」，选择含 `manifest.json` 的解压目录。
+4. 打开或刷新检索网页即可使用。
 
-> 也可以直接 clone 本仓库，加载 `extension/` 目录。
-
-## 支持的网站
-
-中国知网（含 WebVPN 访问）· Web of Science · Google 学术 · 百度学术 · ScienceDirect · PubMed · Springer Link · Semantic Scholar
+也可从本仓库下载源码，加载 `extension/`。安装方式为手动加载，尚未提交扩展商店。
 
 ## 数据
 
-| 数据 | 版本 | 条目 |
-|---|---|---|
-| CSSCI | 2025–2026 | 来源版 668、扩展版 259 |
-| CSCD | 2025–2026 | 核心库 1106、扩展库 365 |
-| 北大核心 | 中文核心期刊要目总览 | 1983 |
-| 中科院分区 | **2025 年版（终版）** | 21772（其中 Top 1789） |
-| 国际期刊预警 | 2020–2025 累计 | 134 |
+| 来源 | 内置版本 |
+|---|---|
+| CSSCI | 2025–2026 来源版与扩展版 |
+| CSCD | 2025–2026 核心库与扩展库 |
+| 北大核心 | 中文核心期刊要目总览 |
+| 中科院分区 | 2025 终版，含 Top 与小类明细 |
+| 国际期刊预警 | 2020–2025 历史累计 |
 
-⚠️ **中科院分区表已停止更新。** 中科院文献情报中心公告自 2026 年起不再更新与发布期刊分区表，2025 年版是最后一版 —— 此后不会过期，也不会有新版。
-
-## 隐私
-
-- 全部数据内置在插件里，运行时**不发起任何网络请求**。
-- 不收集、不上传任何浏览记录或检索内容。
-- 断网可正常使用。
-- 只申请 `storage` 权限（用于在本地保存"是否启用"这一个开关）。
+期刊主表共 **24,354 条**。公开目录之间有重叠；历史预警不表示期刊当前仍在名单内。收录、分区和预警状态以对应目录及公告为准。
 
 ## 开发
 
-```bash
-node validate.js           # 发布前静态校验（589 项：manifest / 图标规格 / MV3 资源声明 / match pattern / 残留词 / 配色一致性 / 选择器布局）
-node test_judge.js         # 判定引擎单元测试（134 项，含 Top 分布回归与自定义主题求解）
-node tools/build_themes.js # 改配色后重生成 core/themes.js（自动反解 alpha 与文字色、输出对比度报告）
-python tools/make_logo_bitmap.py   # 重生成全部尺寸 logo（位图素材 + 光学裁切 + 超椭圆圆角，需 Pillow/numpy）
-node build_release.js      # 隐私扫描 + 生成 release/（打包需手动跑 7z）
+```text
+node test_judge.js
+node test_extension.js
+node tools/build_themes.js
+python build_release.py
 ```
 
-数据集由 `tools/slim_data.py` 从完整版数据集瘦身而来（剔除校内专用字段）：
+浏览器测试依赖 Playwright 与本机 Edge，使用临时配置及拦截的页面样例，不访问现有浏览器账户。可通过 `NODE_PATH` 指向已有 Playwright 依赖目录。
 
-```bash
-python tools/slim_data.py <源 journals.json>
+生成的安装包、源码包和 SHA256 校验和位于 `release/`。如需更换输出目录：
+
+```text
+python build_release.py --output-dir <输出目录>
 ```
 
-### 几个踩过的坑，改代码时留意
-
-1. **MV3 下 content script 用 `fetch(chrome.runtime.getURL(...))` 读扩展内资源，该文件必须声明在 `manifest.json` 的 `web_accessible_resources` 里**，否则被拦成 `Failed to fetch`，插件全瘫。曾经断言这是"多余的"并删掉，直接造成故障。`validate.js` 里有对应断言防再犯。
-2. **match pattern 的通配符 `*` 只能出现在主机名最前面。** `https://scholar.google.*/*` 这种"中间通配"会让扩展直接加载失败，且**报错不指出行号**，极难定位。
-3. **标签要放进一个 block/flex 容器**（`.vega-tagline`），不能直接作为刊名的兄弟节点 —— 否则会跟着刊名文字流走，刊名短的在同一行、长的被挤到第二行，参差不齐。
-4. **CSSCI 与 CSCD 必须合并成一个标签。** 拆成两个时，在知网这类窄列里第二个常被 `overflow:hidden` 裁掉，看起来就像"少了一个库"。
-5. **所有标签的尺寸属性要全部统一**：`height / font-size / border-radius / padding / font-weight / letter-spacing`。字重与字距也会影响渲染宽度，只统一字号和高度是不够的。
-6. **配色只能有一份事实来源。** 页面标签、弹窗图例、说明页示例三处都从 `core/themes.js` 取色 —— 曾经三处各写一份 hex，换色时漏改一处，出现"图例是一种颜色、标签是另一种"。`validate.js` 现在会核对 `:root` 默认值与默认色卡逐项一致。
-7. **位图 logo 要按尺寸做「光学裁切」，不能一刀切整幅缩小。** 整幅缩到 16px 会糊成一团黑；`tools/make_logo_bitmap.py` 的做法是：小尺寸把行星盘放大到画面主体（裁切比例 0.64→0.95 随尺寸递增）、提对比 + USM 锐化把环的高光从辉光里拉出来，再用超椭圆遮罩（`|x/a|^n+|y/a|^n≤1`，n≈4）切出圆角、四角透明（Chrome 不会自己裁圆角）。素材图存 `assets/logo-source.jpg` 入库，logo 因此可复现。历史方案见 `tools/make_logo.js`（纯 Node 矢量栅格化：等宽描边 + miter 斜接画字母标，不依赖字体文件）。
-8. **发布包里绝不能混进开发用的 mock 页。** `popup/preview.html` 是本地模拟 `chrome.storage` 的调试页（已在 `.gitignore` 里），但打包脚本是整目录复制的，会顺手把它塞进安装包 —— 用户装上后误点就看到假面板。`build_release.js` 的 `copyDir` 已显式跳过。
-9. **别依赖 chrome.storage 回调的异步性。** 初始化逻辑要放在 IIFE 末尾、所有定义之后 —— 否则哪天回调同步执行（或测试里 mock 成同步），就会踩"用到还没初始化的 const"的雷。
-10. **自定义主题的颜色必须现场求解，不能让用户直接填 bg/fg。** 用户只给 8 个基础色，扩展版明度、文字色（WCAG ≥ 4.5）、双库渐变全部用与生成器同一套函数推导（`Function.prototype.toString` 序列化进 themes.js，两边永不漂移）。让用户直接填文字色，必然出现浅色配浅色这种读不了的组合。
+同版本压缩包不会被覆盖；修改后发布新版本请更新 manifest 和详情页显示的版本号。
 
 ## 许可
 
-MIT © 2026 xby0328
+软件代码采用 [MIT License](LICENSE)。期刊目录及分区信息的相关权利属于对应数据来源，MIT 许可不授予这些目录的额外使用权。

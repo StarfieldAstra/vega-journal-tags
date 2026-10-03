@@ -5,28 +5,48 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vega · 期刊收录标签 — 使用说明</title>
 <style>
-  /* Apple HIG 风格说明页 */
+
   :root {
     color-scheme: light;
-    --blue: #007AFF;
-    --green: #34C759;
-    --red: #FF3B30;
-    --orange: #FF9500;
-    --teal: #30B0C7;
-    --gray: #8E8E93;
-    --label: #1C1C1E;
-    --sep: rgba(60, 60, 67, 0.16);
-    --bg: #F2F2F7;
-    --card: #FFFFFF;
+    --glow-1: #6EC6E8;
+    --glow-2: #E79FC0;
+    --glow-3: #C087E0;
+    --accent: #1A7FA6;
+    --accent-2: #B84D77;
+    --accent-3: #9858BC;
+    --good: #0E7A57;
+    --warn: #9A6209;
+    --bad: #C4382F;
+    --gray: #6B7280;
+    --label: #1E2430;
+    --sep: rgba(0, 0, 0, 0.09);
+    --bg: #FFFFFF;
+    --card: #F7F8FA;
   }
   * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
 
   body {
+    position: relative;
     max-width: 780px; margin: 0 auto; padding: 44px 22px 72px;
     background: var(--bg); color: var(--label);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
       "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
     font-size: 15px; line-height: 1.7;
+  }
+
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(560px 420px at 4% -8%,
+        rgba(110, 198, 232, 0.42), rgba(110, 198, 232, 0) 70%),
+      radial-gradient(520px 400px at 100% 0%,
+        rgba(231, 159, 192, 0.38), rgba(231, 159, 192, 0) 70%),
+      radial-gradient(600px 460px at 96% 100%,
+        rgba(192, 135, 224, 0.34), rgba(192, 135, 224, 0) 72%),
+      radial-gradient(540px 420px at 0% 100%,
+        rgba(110, 198, 232, 0.26), rgba(110, 198, 232, 0) 70%);
   }
 
   header { margin-bottom: 30px; }
@@ -42,55 +62,52 @@
 
   p { margin: 10px 0; }
 
-  /* 卡片 */
   .card {
     background: var(--card); border-radius: 14px; padding: 18px 20px;
     margin: 16px 0;
-    box-shadow: 0 0.5px 1px rgba(0,0,0,0.04);
+    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.05), 0 8px 24px rgba(30,45,70,0.08);
   }
 
-  /* 提示条 */
   .note {
     display: flex; gap: 12px; align-items: flex-start;
     padding: 14px 16px; border-radius: 12px; margin: 16px 0; font-size: 14px;
     line-height: 1.65;
   }
   .note .ic { flex: 0 0 auto; font-size: 16px; line-height: 1.4; }
-  .note.warn { background: rgba(255,149,0,0.12); color: #8A5200; }
-  .note.info { background: rgba(0,122,255,0.1); color: #004E9C; }
-  .note.ok   { background: rgba(52,199,89,0.12); color: #166B33; }
+  .note.warn { background: rgba(154,98,9,0.09); color: var(--warn); }
+  .note.info { background: rgba(26,127,166,0.09); color: var(--accent); }
+  .note.ok   { background: rgba(14,122,87,0.09); color: var(--good); }
   .note b { font-weight: 600; }
 
-  /* 表格 */
   table {
     width: 100%; border-collapse: collapse; margin: 14px 0;
     background: var(--card); border-radius: 12px; overflow: hidden;
     font-size: 14px;
-    box-shadow: 0 0.5px 1px rgba(0,0,0,0.04);
+    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.05), 0 8px 24px rgba(30,45,70,0.08);
   }
   th, td { padding: 11px 15px; text-align: left; vertical-align: top; }
   th {
-    background: rgba(0,0,0,0.02); font-weight: 600; font-size: 13px;
+    background: rgba(0,0,0,0.028); font-weight: 600; font-size: 13px;
     color: var(--gray); border-bottom: 0.5px solid var(--sep);
   }
   td + td, th + th { border-left: 0.5px solid var(--sep); }
   tbody tr + tr td { border-top: 0.5px solid var(--sep); }
 
-  /* 收录标签徽标 —— 只留形状，颜色由 themes.js 按用户当前色卡注入
-     （data-bk = judge.js 的 Badge key，渲染逻辑见页尾脚本） */
   .bd {
     display: inline-flex; align-items: center;
     padding: 0 8px; height: 21px; border-radius: 6px;
     font-size: 12px; font-weight: 500; letter-spacing: 0.2px;
     white-space: nowrap; flex: 0 0 auto;
-    background: rgba(120, 120, 128, 0.26);   /* themes.js 加载失败时的兜底 */
+    background: rgba(120, 120, 128, 0.20);
   }
-  .bd .st { font-size: 11px; font-weight: 600; }  /* ★ Top 星标 */
+  .bd .st { font-size: 11px; font-weight: 600; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
 
   code {
-    background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 5px;
+    background: rgba(0,0,0,0.055); padding: 2px 6px; border-radius: 5px;
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13px; color: #1C1C1E;
+    font-size: 13px; color: #38404E;
   }
   ol, ul { padding-left: 22px; margin: 10px 0; }
   li { margin: 7px 0; }
@@ -115,19 +132,13 @@
   <div><b>完全本地运行。</b>插件不发起任何网络请求，全部数据内置在你的电脑上，断网也能用，检索记录不会外泄。</div>
 </div>
 
-<div class="note info">
-  <span class="ic">i</span>
-  <div>
-    <b>本插件不做期刊分级。</b>它只呈现公开可查的收录事实，<b>不输出 A1/A2/B1/C 之类的级别</b>，
-    也不内置任何单位的内部目录 —— 分级口径因校而异、随文件更新而变，交给插件"替你定级"反而容易误导。
-  </div>
-</div>
+<div class="note info"><span class="ic">i</span><div><b>本插件呈现公开收录信息。</b>标签对应 CSSCI、CSCD、北大核心、中科院分区及预警目录。收录和分区以相应目录为准，不构成投稿建议。</div></div>
 
 <h2>标签含义</h2>
 <table>
   <thead><tr><th style="width:110px">标签</th><th>含义</th></tr></thead>
   <tbody>
-    <tr><td><span class="bd" data-bk="both-core">CSSCI+CSCD</span></td><td><b>双库收录</b>：同时是 CSSCI 来源版与 CSCD 核心库。紫色渐变是这个插件里最醒目的一个标签 —— 集中投稿时最值得先看这一类。</td></tr>
+    <tr><td><span class="bd" data-bk="both-core">CSSCI+CSCD</span></td><td><b>双库收录</b>：同时是 CSSCI 来源版与 CSCD 核心库。薄荷与晴空渐变是这个插件里最醒目的一个标签 —— 集中投稿时最值得先看这一类。</td></tr>
     <tr><td><span class="bd" data-bk="cssci-source">CSSCI</span></td><td>CSSCI（中文社会科学引文索引）<b>来源期刊</b>，2025–2026 版</td></tr>
     <tr><td><span class="bd" data-bk="cssci-ext">CSSCI扩展</span></td><td>CSSCI <b>扩展版</b>来源期刊</td></tr>
     <tr><td><span class="bd" data-bk="cscd-core">CSCD</span></td><td>CSCD（中国科学引文数据库）<b>核心库</b>，2025–2026 版</td></tr>
@@ -139,8 +150,15 @@
     <tr><td><span class="bd" data-bk="cas-4">中科院4区</span></td><td>大类 4 区</td></tr>
     <tr><td><span class="bd" data-bk="cas-1">中科院1区 <span class="st">★</span>Top</span> <span class="bd" data-bk="cas-2">中科院2区 <span class="st">★</span>Top</span></td><td>该刊同时入选分区表 <b>Top 期刊</b>。官方规则：<b>1 区全部是 Top</b>，2 区约 12%（338/2844）择优入选，3、4 区不设。Top 直接并入分区标签文字并加 ★，不单独占一个标签位（避免在窄列里被挤掉），<b>任何分区有 Top 都会显示 ★</b></td></tr>
     <tr><td><span class="bd" data-bk="warning">预警</span></td><td>曾列入中科院《国际期刊预警名单》，点击标签可看年份与原因。<b>投稿前请务必核实</b></td></tr>
-  </tbody>
+    </tbody>
 </table>
+
+<h2>标签总览</h2>
+<div class="card">
+  <p style="margin:0 0 4px">下面是插件会贴出的全部标签，<b>按你在扩展面板里选的配色实时上色</b> —— 换一套配色，这里跟着变，所见即所得。</p>
+  <div class="chips" id="allBadges"></div>
+  <p class="muted" style="margin:10px 0 0">不需要的来源可以在扩展面板的「收录标签」里取消勾选，勾选变化会立刻反映到已打开的页面上。</p>
+</div>
 
 <h2>数据版本</h2>
 <table>
@@ -151,8 +169,17 @@
     <tr><td>北大核心</td><td>中文核心期刊要目总览</td><td>北大核心收录刊</td></tr>
     <tr><td>中科院分区</td><td><b>2025 年版（终版）</b></td><td>含大类分区、Top 标记与小类分区明细</td></tr>
     <tr><td>国际期刊预警</td><td>2020–2025 累计</td><td>命中即加「预警」标签</td></tr>
-  </tbody>
+    </tbody>
 </table>
+
+<div class="card" id="dsCard" style="display:none">
+  <h3 style="margin-top:0">内置数据集明细</h3>
+  <table style="margin:0;box-shadow:none;background:transparent">
+    <thead><tr><th>收录项</th><th style="text-align:right">条目数</th></tr></thead>
+    <tbody id="dsBody"></tbody>
+  </table>
+  <p class="muted" style="margin:12px 0 0">数字直接读自插件内置的 <code>journals.json</code>，不是手写的常量。</p>
+</div>
 
 <div class="note warn">
   <span class="ic">⚠</span>
@@ -166,8 +193,18 @@
     <li><b>CSSCI 集刊未收录</b>（约 200 余种），集刊不会显示 CSSCI 标签。</li>
     <li><b>Google 学术</b>会把过长的刊名截断（如「Journal of Ver...」），截断后匹配不到，属正常现象。</li>
     <li>预警名单是<b>历史累计</b>（2020–2025），不代表该刊当下仍在名单内，请以官方最新公告为准。</li>
-  </ul>
+    </ul>
 </div>
+
+<h2>面板设置</h2>
+<table>
+  <thead><tr><th style="width:130px">设置项</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td><b>启用标签显示</b></td><td>总开关。关掉后所有页面不再注入任何标签，已打开的页面会立即恢复原样。</td></tr>
+    <tr><td><b>标签配色</b></td><td>一组清新默认配色，点击「自定义配色」可编辑八类基础色，扩展版、渐变和文字色自动推导。可一键恢复默认。<b>只影响标签外观，不改判定</b>。</td></tr>
+    <tr><td><b>界面主题</b></td><td>默认<b>跟随系统</b>：系统切深色模式，弹窗跟着切。也可以手动锁定浅色或深色。界面换色不影响网页上的标签。</td></tr>
+  </tbody>
+</table>
 
 <h2>支持的网站</h2>
 <table>
@@ -200,34 +237,11 @@
 
 <footer>
   CSSCI 2025–2026｜CSCD 2025–2026｜北大核心｜中科院分区 2025 终版<br>
-  本插件仅呈现公开收录信息，不作任何期刊分级评价。
+  本插件仅呈现公开收录信息，数据版本与目录来源如上。
 </footer>
 
 <script src="../core/themes.js"></script>
-<script>
-/**
- * 说明页里的示例标签直接用「用户当前选的色卡」上色。
- * 好处：换一套配色，说明页跟手变，不会出现「说明页是一种配色、
- * 页面上是另一种」的错位 —— 这正是以前三处写死颜色惹出的麻烦。
- */
-(function () {
-  const T = window.VegaThemes;
-  if (!T) return;
-  chrome.storage.local.get({ theme: T.DEFAULT_THEME }, (st) => {
-    const t = T.getTheme(st && st.theme);
-    document.querySelectorAll('.bd[data-bk]').forEach((el) => {
-      const v = t.css[T.ROLE[el.getAttribute('data-bk')]];
-      if (!v) return;
-      el.style.background = v.bg;
-      el.style.color = v.fg;
-      if (el.getAttribute('data-bk').startsWith('both') ||
-          el.getAttribute('data-bk') === 'warning') el.style.fontWeight = '600';
-      const star = el.querySelector('.st');
-      if (star) star.style.color = t.css.star;
-    });
-  });
-})();
-</script>
+<script src="guide.js"></script>
 
 </body>
 </html>

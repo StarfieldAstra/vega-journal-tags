@@ -33,6 +33,24 @@ async function readDataFile(name) {
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg && ['settingsPanelReady', 'settingsPanelResize', 'closeSettingsPanel'].includes(msg.type)) {
+    if (!_sender.tab || !_sender.url || !_sender.url.startsWith(chrome.runtime.getURL('popup/popup.html?embedded=1'))) {
+      sendResponse({ok: false});
+      return false;
+    }
+    chrome.tabs.sendMessage(_sender.tab.id, msg, (response) => {
+      const error = chrome.runtime.lastError;
+      sendResponse(error ? {ok: false} : response || {ok: true});
+    });
+    return true;
+  }
+  if (msg && msg.type === 'readMenuStyle') {
+    fetch(chrome.runtime.getURL('style.css'))
+      .then((res) => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
+      .then((css) => sendResponse({ ok: true, css }))
+      .catch((e) => sendResponse({ ok: false, error: String(e.message || e) }));
+    return true;
+  }
   if (msg && msg.type === 'readData') {
     readDataFile(msg.name)
       .then((data) => sendResponse({ ok: true, data }))

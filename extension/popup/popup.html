@@ -1,33 +1,122 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="ui-light">
 <head>
 <meta charset="utf-8">
+<script src="boot.js"></script>
 <style>
-  /* ============================================================
-     Apple HIG 风格设置面板
-     ── 系统色：Blue #007AFF / Green #34C759 / Red #FF3B30
-     ── Label #1C1C1E / Gray #8E8E93 / Gray2 #AEAEB2
-     ── 背景 #F2F2F7 (systemGroupedBackground)，卡片纯白
-     ── 圆角：容器 12px / 按钮 10px / 小控件 8px
-     ── hairline 0.5px 描边模拟 iOS 分隔线
-     ============================================================ */
+
   :root {
-    color-scheme: light;
-    --blue: #007AFF;
-    --green: #34C759;
-    --red: #FF3B30;
-    --orange: #FF9500;
-    --label: #1C1C1E;
-    --gray: #8E8E93;
-    --gray2: #AEAEB2;
-    --sep: rgba(60, 60, 67, 0.16);
-    --bg: #F2F2F7;
-    --card: #FFFFFF;
-    --radius: 12px;
+
+    --glow-1: #6EC6E8;
+    --glow-2: #E79FC0;
+    --glow-3: #C087E0;
+    --radius: 18px;
   }
+
+  .ui-light {
+    color-scheme: light;
+    --accent: #1A7FA6;
+    --accent-2: #B84D77;
+    --accent-3: #9858BC;
+    --good: #0E7A57;
+    --bad: #C4382F;
+    --warn: #9A6209;
+    --label: #1E2430;
+    --gray: #6B7280;
+    --gray2: #9AA1AE;
+    --sep: rgba(0, 0, 0, 0.09);
+    --bg: #FFFFFF;
+    --card: #F7F8FA;
+    --raise: rgba(0, 0, 0, 0.035);
+    --btn-shadow: 0 4px 14px rgba(30, 45, 70, 0.08);
+    --card-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.05), 0 6px 18px rgba(30, 45, 70, 0.07);
+    --hd-bg: rgba(255, 255, 255, 0.80);
+    --switch-off: rgba(120, 128, 145, 0.20);
+    --sw-ring: 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+    --kn-shadow: 0 1px 3px rgba(0, 0, 0, 0.22), 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+    --dash: rgba(0, 0, 0, 0.20);
+    --bar-inner: 0 0 0 0.5px rgba(0, 0, 0, 0.07);
+    --tip-bg: rgba(154, 98, 9, 0.09);
+    --err-bg: rgba(196, 56, 47, 0.09);
+    --code-bg: rgba(0, 0, 0, 0.06);
+    --field-bg: #fff;
+    --field-bd: rgba(0, 0, 0, 0.14);
+    --logo-ring: 0 0 0 0.5px rgba(110, 198, 232, 0.42), 0 0 9px rgba(110, 198, 232, 0.30);
+    --sw-on-1: #1A7FA6;
+    --sw-on-2: #9858BC;
+    --focus-ring: rgba(26, 127, 166, 0.55);
+    --focus-halo: rgba(26, 127, 166, 0.28);
+    --kn-fg: #fff;
+    --tick-shadow: rgba(0, 0, 0, 0.28);
+    --btn-hover: #EEF0F4;
+    --btn-active: #E7EAF0;
+    --primary-fg: #0A0B11;
+  }
+
+  .ui-dark {
+    color-scheme: dark;
+    --accent: #6EC6E8;
+    --accent-2: #E79FC0;
+    --accent-3: #C087E0;
+    --good: #46D6A0;
+    --bad: #FF6B62;
+    --warn: #FFC46B;
+    --label: #ECEFF6;
+    --gray: #9AA0B0;
+    --gray2: #6A7080;
+    --sep: rgba(255, 255, 255, 0.10);
+    --bg: #0A0B11;
+    --card: #15171F;
+    --raise: rgba(255, 255, 255, 0.055);
+    --btn-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    --card-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.07), 0 8px 22px rgba(0, 0, 0, 0.40);
+    --hd-bg: rgba(10, 11, 17, 0.82);
+    --switch-off: rgba(122, 128, 148, 0.30);
+    --sw-ring: 0 0 0 0.5px rgba(255, 255, 255, 0.09);
+    --kn-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    --dash: rgba(255, 255, 255, 0.24);
+    --bar-inner: 0 0 0 0.5px rgba(0, 0, 0, 0.20);
+    --tip-bg: rgba(255, 196, 107, 0.13);
+    --err-bg: rgba(255, 107, 98, 0.14);
+    --code-bg: rgba(255, 255, 255, 0.10);
+    --field-bg: rgba(0, 0, 0, 0.30);
+    --field-bd: rgba(255, 255, 255, 0.14);
+    --logo-ring: 0 0 0 0.5px rgba(110, 198, 232, 0.30), 0 0 10px rgba(110, 198, 232, 0.22);
+    --sw-on-1: #4FBEDD;
+    --sw-on-2: #A88FE0;
+    --focus-ring: rgba(110, 198, 232, 0.55);
+    --focus-halo: rgba(110, 198, 232, 0.32);
+    --kn-fg: #0A0B11;
+    --tick-shadow: rgba(0, 0, 0, 0.5);
+    --btn-hover: #1B1E28;
+    --btn-active: #20242F;
+    --primary-fg: #0A0B11;
+  }
+
   * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html { background: transparent; }
+
+  .ui-booting body { visibility: hidden; animation: ui-booting-fallback 0s linear 0.7s forwards; }
+  @keyframes ui-booting-fallback { to { visibility: visible; } }
+  body.ui-ready { visibility: visible; }
   body {
-    width: 320px; margin: 0;
+    width: min(336px, 100vw); margin: 0;
+    background: transparent;
+    color: var(--label);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+      "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .shell {
+    position: relative;
+    width: 100%; margin: 0;
+    max-height: var(--panel-max-height, 584px);
+    border-radius: 24px;
+    overflow: hidden auto;
+    scrollbar-width: thin;
+    isolation: isolate;
+    box-shadow: inset 0 0 0 0.5px var(--sep);
     background: var(--bg);
     color: var(--label);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
@@ -36,16 +125,50 @@
     line-height: 1.5;
   }
 
-  /* ---- 顶部标题栏 ---- */
+  .shell::before {
+    content: "";
+    position: absolute; inset: 0; z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(190px 150px at 2% -10%,
+        rgba(110, 198, 232, var(--g1)), rgba(110, 198, 232, 0) 72%),
+      radial-gradient(170px 140px at 104% 0%,
+        rgba(231, 159, 192, var(--g2)), rgba(231, 159, 192, 0) 72%),
+      radial-gradient(185px 155px at 92% 108%,
+        rgba(192, 135, 224, var(--g3)), rgba(192, 135, 224, 0) 74%),
+      radial-gradient(165px 135px at -6% 102%,
+        rgba(110, 198, 232, var(--g4)), rgba(110, 198, 232, 0) 72%);
+  }
+
+  .ui-light { --g1: .62; --g2: .58; --g3: .55; --g4: .42; }
+  .ui-dark  { --g1: .55; --g2: .50; --g3: .48; --g4: .36; }
+
   .hd {
+    position: relative; z-index: 1;
     padding: 12px 16px 10px;
-    background: rgba(242, 242, 247, 0.85);
+    background: var(--hd-bg);
     -webkit-backdrop-filter: saturate(180%) blur(18px);
     backdrop-filter: saturate(180%) blur(18px);
     border-bottom: 0.5px solid var(--sep);
   }
-  .brand { display: flex; align-items: center; gap: 8px; }
-  .brand .logo { width: 22px; height: 22px; border-radius: 5.5px; display: block; }
+  .brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand-motto {
+    margin: 0;
+    font-family: "Palatino Linotype", "Baskerville", "Book Antiqua", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 13.5px;
+    line-height: 1.35;
+    letter-spacing: 0.15px;
+    color: var(--gray);
+    white-space: nowrap;
+  }
+  .brand-mark { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+
+  .brand .logo {
+    width: 22px; height: 22px; border-radius: 5.5px; display: block;
+    box-shadow: var(--logo-ring);
+  }
   .brand .word {
     font-family: "Bodoni MT", Didot, "Playfair Display", "Songti SC",
       "Noto Serif SC", Georgia, "Times New Roman", serif;
@@ -56,15 +179,14 @@
     color: var(--label);
   }
 
-  .body { padding: 12px 12px 16px; }
+  .body { position: relative; z-index: 1; padding: 10px 12px 12px; }
 
-  /* ---- 分组容器 ---- */
   .group {
     background: var(--card);
     border-radius: var(--radius);
-    margin-bottom: 14px;
+    margin-bottom: 12px;
     overflow: hidden;
-    box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--card-shadow);
   }
   .group-t {
     font-size: 11.5px;
@@ -74,7 +196,6 @@
     letter-spacing: 0.3px;
   }
 
-  /* ---- 分组行（iOS inset grouped 风格）---- */
   .row {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 13px;
@@ -88,65 +209,63 @@
   }
   .row .lbl { flex: 1; min-width: 0; }
   .row .t1 { font-size: 13.5px; }
-  .row .t2 { font-size: 11.5px; color: var(--gray); margin-top: 1px; line-height: 1.4; }
-  .row .val { font-size: 13px; color: var(--gray); flex: 0 0 auto; }
 
-  /* ---- iOS 开关 ---- */
-  .sw { position: relative; width: 51px; height: 31px; flex: 0 0 auto; }
+  .sw { position: relative; width: 44px; height: 24px; flex: 0 0 auto; }
   .sw input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
   .sw .tr {
-    position: absolute; inset: 0; background: #E9E9EA;
-    border-radius: 16px; transition: background 0.22s cubic-bezier(0.32,0.72,0,1);
+    position: absolute; inset: 0;
+    background: var(--switch-off);
+    box-shadow: var(--sw-ring);
+    border-radius: 12px; transition: background 0.22s cubic-bezier(0.32,0.72,0,1);
   }
   .sw .kn {
-    position: absolute; top: 2px; left: 2px; width: 27px; height: 27px;
+    position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
     background: #fff; border-radius: 50%;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.16), 0 0 0 0.5px rgba(0,0,0,0.04);
+    box-shadow: var(--kn-shadow);
     transition: transform 0.22s cubic-bezier(0.32,0.72,0,1);
   }
-  .sw input:checked + .tr { background: var(--green); }
+
+  .sw input:checked + .tr { background: linear-gradient(90deg, var(--sw-on-1), var(--sw-on-2)); }
   .sw input:checked + .tr + .kn { transform: translateX(20px); }
-  .sw input:focus-visible + .tr { box-shadow: 0 0 0 3.5px rgba(0,122,255,0.28); }
+  .sw input:focus-visible + .tr { box-shadow: 0 0 0 3.5px var(--focus-halo); }
 
-  /* ---- 标签配色选择 ----
-     网格平铺：全部色卡一屏可见，不需要横向滚动（横向滚动在
-     弹窗里只能拖拽或按方向键，体验很差） */
-  .themes {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-    padding: 12px 13px 8px;
+  .fold-toggle {
+    width: 100%; display: flex; align-items: center; gap: 10px;
+    padding: 9px 13px; background: none; border: none; cursor: pointer;
+    font-family: inherit; color: var(--label); text-align: left;
   }
-  .th {
-    width: auto; min-width: 0; padding: 0; cursor: pointer;
-    background: none; border: none; font-family: inherit; text-align: center;
-  }
-  /* 预览：把这套色卡里最有代表性的几枚做成小色块，
-     一眼能看出冷暖与浓淡，不用逐个点开试 */
-  .th-bar {
-    display: flex; overflow: hidden; height: 24px;
-    border-radius: 7px; border: 1.5px solid transparent;
-    transition: border-color 0.15s ease, transform 0.12s ease;
-  }
-  .th-bar i { flex: 1; min-width: 0; }
-  .th-nm {
-    display: block; margin-top: 5px; font-size: 11px; line-height: 1.3;
-    color: var(--label); letter-spacing: -0.1px;
-  }
-  .th[aria-pressed="true"] .th-bar { border-color: var(--blue); }
-  .th[aria-pressed="true"] .th-nm { color: var(--blue); font-weight: 600; }
-  .th:hover .th-bar { transform: translateY(-1px); }
-  .th:focus-visible .th-bar { border-color: var(--blue); }
-  /* 「自定义」入口的虚线框，暗示「这里可以造一套新的」 */
-  .th-custom .th-bar {
-    border: 1.5px dashed var(--sep);
-    align-items: center; justify-content: center;
-    color: var(--gray); font-size: 15px; line-height: 1;
-  }
-  .th-custom[aria-pressed="true"] .th-bar { border-color: var(--blue); color: var(--blue); }
+  .fold-toggle:hover { background: var(--raise); }
+  .fold-toggle:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--focus-ring); }
 
-  /* ---- 自定义配色面板 ---- */
+  .fold-nm { flex: 1; min-width: 0; font-size: 13.5px; }
+  .fold-chev { flex: 0 0 auto; color: var(--gray); transition: transform 0.24s cubic-bezier(0.32,0.72,0,1); }
+  .fold-toggle[aria-expanded="true"] .fold-chev { transform: rotate(180deg); }
+
+  .fold-panel {
+    display: grid; grid-template-rows: 0fr;
+    transition: grid-template-rows 0.26s cubic-bezier(0.32,0.72,0,1);
+  }
+
+  .fold-panel.open {
+    grid-template-rows: 1fr;
+    box-shadow: inset 0 0.5px 0 var(--sep);
+  }
+  .fold-panel-in { overflow: hidden; min-height: 0; }
+
+  .db-acts {
+    display: flex; gap: 14px; padding: 0 13px 10px;
+  }
+  .db-acts button {
+    font-size: 11.5px; font-family: inherit; color: var(--accent);
+    background: none; border: none; padding: 0; cursor: pointer;
+  }
+  .db-acts button:hover { text-decoration: underline; }
+  .db-acts .warn-act { color: var(--gray); }
+
+  #customColors { max-height: 220px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
   .cc-row {
     display: flex; align-items: center; gap: 8px;
-    padding: 5px 13px; position: relative;
+    padding: 7px 13px; position: relative;
   }
   .cc-row + .cc-row::before {
     content: ""; position: absolute; left: 13px; right: 0; top: 0;
@@ -161,57 +280,126 @@
     width: 72px; padding: 3px 6px;
     font-family: ui-monospace, Menlo, Consolas, monospace;
     font-size: 11.5px; text-transform: uppercase;
-    color: var(--label); background: var(--bg);
-    border: 0.5px solid var(--sep); border-radius: 6px;
+    color: var(--label); background: var(--field-bg);
+    border: 0.5px solid var(--field-bd); border-radius: 6px;
   }
-  .cc-hex:focus { outline: none; border-color: var(--blue); }
-  .cc-hex.cc-bad { border-color: var(--red); color: var(--red); }
+  .cc-hex:focus { outline: none; border-color: var(--accent); }
+  .cc-hex.cc-bad { border-color: var(--bad); color: var(--bad); }
   .cc-reset {
     margin: 6px 13px 12px; padding: 6px 0; width: calc(100% - 26px);
-    font-size: 12px; color: var(--blue); background: none;
-    border: 0.5px solid var(--sep); border-radius: 8px; cursor: pointer;
+    font-size: 12px; color: var(--accent); background: none;
+    border: 0.5px solid var(--sep); border-radius: 12px; cursor: pointer;
     font-family: inherit;
   }
-  .cc-reset:hover { background: rgba(0, 0, 0, 0.03); }
+  .cc-reset:hover { background: var(--raise); }
 
-  /* ---- 图例下的注释文字 ---- */
-  .theme-desc {
-    padding: 0 13px 12px; font-size: 11.5px; line-height: 1.55; color: var(--gray);
+  .db-list { padding: 3px 0 2px; }
+  .db-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 13px; position: relative; cursor: pointer;
   }
-  .theme-desc b { font-weight: 600; color: var(--label); }
+  .db-item + .db-item::before {
+    content: ""; position: absolute; left: 13px; right: 0; top: 0;
+    height: 0.5px; background: var(--sep);
+  }
+  .db-item:hover { background: var(--raise); }
+  .db-item input { position: absolute; opacity: 0; width: 0; height: 0; }
 
-  /* ---- 收录标签图例 ---- */
-  .legend {
-    display: flex; flex-wrap: wrap; gap: 5px;
-    padding: 12px 13px;
+  .db-box {
+    width: 18px; height: 18px; flex: 0 0 auto; border-radius: 5.5px;
+    box-shadow: inset 0 0 0 1.5px var(--field-bd);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
   }
-  .legend .chip {
-    display: inline-flex; align-items: center;
-    height: 21px; padding: 0 8px; border-radius: 6px;
-    font-size: 11.5px; font-weight: 500; letter-spacing: 0.2px;
-    white-space: nowrap;
+  .db-box svg { opacity: 0; color: #fff; }
+  .db-item input:checked + .db-box {
+    background: linear-gradient(135deg, var(--sw-on-1), var(--sw-on-2));
+    box-shadow: none;
+  }
+  .db-item input:checked + .db-box svg { opacity: 1; }
+  .db-item input:focus-visible + .db-box { box-shadow: 0 0 0 3.5px var(--focus-halo); }
+  .db-tx { flex: 1; min-width: 0; font-size: 13px; line-height: 1.35; }
+  .db-tx .sub { display: block; font-size: 11px; color: var(--gray); line-height: 1.3; }
+
+  .db-grp {
+    font-size: 10.5px; color: var(--gray); font-weight: 500;
+    letter-spacing: 0.4px; padding: 9px 13px 3px;
+  }
+  .db-grp:first-child { padding-top: 4px; }
+
+  .ui-seg {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;
+    padding: 4px; margin: 4px;
+    background: var(--raise); border-radius: 14px;
+  }
+  .ui-opt {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 6px 2px 7px; cursor: pointer;
+    font-family: inherit; font-size: 11px; color: var(--gray);
+    background: none; border: none; border-radius: 11px;
+    transition: background 0.14s ease, color 0.14s ease;
+  }
+  .ui-opt:hover { color: var(--label); }
+  .ui-opt[aria-pressed="true"] {
+    color: var(--label); font-weight: 600;
+    background: var(--card);
+    box-shadow: 0 0 0 0.5px var(--field-bd), 0 1px 3px var(--kn-shadow);
+  }
+  .ui-opt:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--focus-ring); }
+
+  .ui-prev {
+    width: 24px; height: 15px; border-radius: 4px; overflow: hidden;
+    position: relative; flex: 0 0 auto;
+    box-shadow: inset 0 0 0 0.5px var(--field-bd);
+  }
+  .ui-prev::before {
+    content: ""; position: absolute; inset: 0;
+  }
+  .ui-prev.p-light { background: #FFFFFF; }
+  .ui-prev.p-light::before {
+    background:
+      radial-gradient(11px 9px at 0% 0%, rgba(110,198,232,.62), rgba(110,198,232,0) 72%),
+      radial-gradient(10px 8px at 100% 100%, rgba(192,135,224,.55), rgba(192,135,224,0) 74%);
+  }
+  .ui-prev.p-dark { background: #0A0B11; }
+  .ui-prev.p-dark::before {
+    background:
+      radial-gradient(11px 9px at 0% 0%, rgba(110,198,232,.55), rgba(110,198,232,0) 72%),
+      radial-gradient(10px 8px at 100% 100%, rgba(231,159,192,.50), rgba(231,159,192,0) 74%);
   }
 
-  /* ---- 按钮 ---- */
+  .ui-prev.p-auto {
+    background: linear-gradient(105deg, #FFFFFF 0 50%, #0A0B11 50% 100%);
+  }
+  .ui-prev.p-auto::before {
+    background:
+      radial-gradient(11px 9px at 0% 0%, rgba(110,198,232,.55), rgba(110,198,232,0) 72%),
+      radial-gradient(10px 8px at 100% 100%, rgba(192,135,224,.5), rgba(192,135,224,0) 74%);
+  }
+
   .btn {
     width: 100%; padding: 11px; cursor: pointer;
     font-size: 14px; font-weight: 500; font-family: inherit;
-    color: var(--blue); background: var(--card);
-    border: none; border-radius: 10px;
-    box-shadow: 0 0.5px 1px rgba(0,0,0,0.04);
+    color: var(--accent); background: var(--card);
+    border: none; border-radius: 16px;
+    box-shadow: var(--btn-shadow);
     transition: background 0.12s ease, transform 0.1s ease;
   }
-  .btn:hover { background: rgba(0,0,0,0.025); }
-  .btn:active { transform: scale(0.985); background: rgba(0,0,0,0.05); }
-  .btn.primary { color: #fff; background: var(--blue); }
-  .btn.primary:hover { background: #0A6FD8; }
+  .btn:hover { background: var(--btn-hover); }
+  .btn:active { transform: scale(0.985); background: var(--btn-active); }
 
-  /* ---- 诊断区 ---- */
-  .diag { margin: 0 0 14px; }
+  .btn.primary {
+    color: var(--primary-fg);
+    background: linear-gradient(110deg, #AFE3D8, #B6DDF3);
+  }
+  .btn.primary:hover { filter: brightness(1.05); }
+
+  .diag { margin: 10px 0 0; }
+  .diag .group { margin-bottom: 0; }
   .diag-t { font-size: 11.5px; color: var(--gray); padding: 0 4px 6px; font-weight: 500; }
   .diag-r {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 7px 13px; position: relative;
+    padding: 5px 13px; position: relative;
   }
   .diag-r + .diag-r::before {
     content: ""; position: absolute; left: 13px; right: 0; top: 0;
@@ -219,111 +407,112 @@
   }
   .diag-r .k { font-size: 13px; color: var(--label); }
   .diag-r .v { font-size: 13px; font-weight: 500; color: var(--gray); }
-  .diag-r .v.good { color: var(--green); }
-  .diag-r .v.bad { color: var(--red); }
-  .diag-miss {
-    padding: 9px 13px; font-size: 11.5px; line-height: 1.6;
-    color: var(--gray); border-top: 0.5px solid var(--sep);
-    word-break: break-all;
-  }
+  .diag-r .v.good { color: var(--good); }
+  .diag-r .v.bad { color: var(--bad); }
   .diag-err {
     margin: 8px 12px 12px; padding: 9px 11px;
-    background: rgba(255,59,48,0.1); border-radius: 8px;
-    color: #B3201B; font-size: 11.5px; line-height: 1.55;
+    background: var(--err-bg); border-radius: 8px;
+    color: var(--bad); font-size: 11.5px; line-height: 1.55;
   }
   .diag-err code {
-    background: rgba(0,0,0,0.06); padding: 1px 4px; border-radius: 3px;
+    background: var(--code-bg); padding: 1px 4px; border-radius: 3px;
     font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 10.5px;
   }
-  /* 数据版本行 */
-  .stat {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 7px 13px; position: relative;
-  }
-  .stat + .stat::before {
-    content: ""; position: absolute; left: 13px; right: 0; top: 0;
-    height: 0.5px; background: var(--sep);
-  }
-  .stat .k { font-size: 12.5px; color: var(--label); }
-  .stat .v { font-size: 12.5px; font-weight: 500; color: var(--gray);
-             font-variant-numeric: tabular-nums; }
-
-  /* ---- 提示条 ---- */
-  .note {
-    padding: 10px 12px; font-size: 11.5px; line-height: 1.6;
-    color: #9A5B00; background: rgba(255,149,0,0.12);
-    border-radius: 10px; margin: 0 0 14px;
-  }
-  .note b { font-weight: 600; }
 </style>
 </head>
 <body>
+<div class="shell">
 
 <div class="hd">
   <div class="brand">
-    <img class="logo" src="../icon32.png" alt="">
-    <span class="word">Vega</span>
+    <div class="brand-mark">
+      <img class="logo" src="../icon32.png" alt="">
+      <span class="word">Vega</span>
+    </div>
+    <p class="brand-motto" lang="en">Verify, Evaluate, Grade, Assign</p>
   </div>
 </div>
 
 <div class="body">
 
-  <!-- 显示设置 -->
   <div class="group-t">显示</div>
   <div class="group">
     <div class="row">
       <div class="lbl">
         <div class="t1">启用标签显示</div>
-        <div class="t2">关闭后所有页面不再注入标签</div>
       </div>
       <label class="sw">
         <input type="checkbox" id="enabled" checked>
         <span class="tr"></span><span class="kn"></span>
       </label>
     </div>
-    <div class="row">
-      <div class="lbl">
-        <div class="t1">收录标签</div>
-        <div class="t2">CSSCI / CSCD / 北核 / 中科院分区</div>
+
+    <button class="fold-toggle" id="dbToggle" type="button"
+            aria-expanded="false" aria-controls="dbPanel">
+      <span class="fold-nm">收录标签</span>
+      <svg class="fold-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M2.6 4.6 L6 8 L9.4 4.6" fill="none" stroke="currentColor"
+              stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="fold-panel" id="dbPanel">
+      <div class="fold-panel-in">
+        <div class="db-list" id="dbList"></div>
+        <div class="db-acts">
+          <button type="button" id="dbAll">全选</button>
+          <button type="button" id="dbNone">清空</button>
+        </div>
       </div>
-      <span class="val">常开</span>
     </div>
   </div>
 
-  <!-- 标签配色 -->
   <div class="group-t">标签配色</div>
   <div class="group">
-    <div class="themes" id="themes"></div>
-    <div id="customPanel" style="display:none">
-      <div id="customColors"></div>
-      <button id="customReset" class="cc-reset" type="button">恢复默认色</button>
+    <button class="fold-toggle" id="thToggle" type="button"
+            aria-expanded="false" aria-controls="thPanel">
+      <span class="fold-nm" id="thCurNm">自定义配色</span>
+      <svg class="fold-chev" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M2.6 4.6 L6 8 L9.4 4.6" fill="none" stroke="currentColor"
+              stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="fold-panel" id="thPanel">
+      <div class="fold-panel-in">
+        <div id="customPanel">
+          <div id="customColors"></div>
+          <button id="customReset" class="cc-reset" type="button">恢复默认配色</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- 收录类型图例 -->
-  <div class="group-t">标签图例</div>
+  <div class="group-t">界面主题</div>
   <div class="group">
-    <div class="legend" id="legend"></div>
-    <div class="theme-desc" id="legendNote"></div>
+    <div class="ui-seg" id="uiSeg" role="group" aria-label="界面主题">
+      <button class="ui-opt" type="button" data-ui="auto" aria-pressed="true">
+        <span class="ui-prev p-auto" aria-hidden="true"></span>跟随系统
+      </button>
+      <button class="ui-opt" type="button" data-ui="light" aria-pressed="false">
+        <span class="ui-prev p-light" aria-hidden="true"></span>浅色
+      </button>
+      <button class="ui-opt" type="button" data-ui="dark" aria-pressed="false">
+        <span class="ui-prev p-dark" aria-hidden="true"></span>深色
+      </button>
+    </div>
   </div>
 
   <button id="rescan" class="btn primary">重新扫描当前页面</button>
 
-  <!-- 诊断 -->
   <div class="diag" id="diag" style="display:none">
     <div class="diag-t">本页诊断</div>
     <div class="group"><div id="diagBody"></div></div>
   </div>
 
-  <!-- 数据版本 -->
-  <div class="group-t">数据版本</div>
-  <div class="group"><div id="info"></div></div>
-
-  <div class="note" id="warn" style="display:none"></div>
-
 </div>
 
 <script src="../core/themes.js"></script>
 <script src="popup.js"></script>
+<script src="panel.js"></script>
+</div>
 </body>
 </html>

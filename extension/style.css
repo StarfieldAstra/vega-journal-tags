@@ -1,90 +1,55 @@
-/* Vega · 期刊收录标签 — 注入样式
- *
- * 设计语言：Apple Human Interface Guidelines（iOS 17 / macOS Sonoma）
- * ── 配色：iOS 系统语义色（systemRed / Orange / Teal / Blue / Gray / Purple）
- * ── 形状：统一 6px 圆角标签 + 18px 圆角浮层 + 0.5px hairline 描边
- * ── 浮层：backdrop-filter 毛玻璃，浅色/深色网站背景下均清晰
- * ── 字体：-apple-system (SF Pro) 优先
- *
- * 尺寸铁律：所有标签一律 21px 高 / 12px 字 / 6px 圆角 / 8px 左右内边距 /
- *          font-weight 500 / letter-spacing 0.2px。
- * 字重与字距也会影响渲染宽度——曾经只统一了字号与高度，结果
- * 「中科院1区」比「CSSCI」宽出一截，一排标签参差不齐。
- *
- * 配色：全部走 --vega-* 变量，由 core/themes.js 注入。
- *       这里只写「默认的那套（Vega 默认）」，用户在弹窗里换色卡时，
- *       content.js 直接改 :root 上一组变量即可整页换装，无需重渲染 DOM。
- *       每套色卡的底色 alpha 与文字色都由 tools/build_themes.js 按
- *       WCAG 对比度 ≥ 4.5:1 现算，勿手改这里的数值。
- */
-
-/* ================================================================
-   配色变量（默认 = Vega 默认，会被 core/themes.js 覆盖）
-   ================================================================ */
 :root {
-  --vega-cssci-bg: rgba(255, 204, 0, 0.411);
-  --vega-cssci-fg: #7D6400;
-  --vega-cssci-ext-bg: rgba(255, 204, 0, 0.238);
-  --vega-cssci-ext-fg: #856A00;
+  --vega-cssci-bg: rgba(64, 183, 158, 0.219);
+  --vega-cssci-fg: #287364;
+  --vega-cssci-ext-bg: rgba(64, 183, 158, 0.127);
+  --vega-cssci-ext-fg: #2A7968;
 
-  --vega-cscd-bg: rgba(142, 142, 147, 0.329);
-  --vega-cscd-fg: #5E5E61;
-  --vega-cscd-ext-bg: rgba(142, 142, 147, 0.159);
-  --vega-cscd-ext-fg: #636367;
+  --vega-cscd-bg: rgba(109, 171, 220, 0.381);
+  --vega-cscd-fg: #3F6380;
+  --vega-cscd-ext-bg: rgba(109, 171, 220, 0.184);
+  --vega-cscd-ext-fg: #466D8D;
 
-  --vega-beike-bg: rgba(0, 122, 255, 0.240);
-  --vega-beike-fg: #0055B3;
+  --vega-beike-bg: rgba(131, 139, 215, 0.337);
+  --vega-beike-fg: #555A8C;
 
-  --vega-both-bg: linear-gradient(135deg, #A14CCD 0%, #C42797 100%);
+  --vega-both-bg: linear-gradient(135deg, #2D8270 0%, #4D799C 100%);
   --vega-both-fg: #FFFFFF;
-  /* 「扩展版」那档：仍然用渐变，但整体提亮一档、文字改用深色，
-     视觉重量明确低于 both-core —— 唯一的实心渐变留给双核心。 */
-  --vega-both-mixed-bg: linear-gradient(135deg, #C189DE 0%, #D870BB 100%);
-  --vega-both-mixed-fg: #3F273F;
 
-  --vega-cas1-bg: rgba(255, 59, 48, 0.313);
-  --vega-cas1-fg: #A6261F;
-  --vega-cas2-bg: rgba(255, 149, 0, 0.447);
-  --vega-cas2-fg: #874F00;
-  --vega-cas3-bg: rgba(48, 176, 199, 0.345);
-  --vega-cas3-fg: #1C6875;
-  --vega-cas4-bg: rgba(142, 142, 147, 0.340);
-  --vega-cas4-fg: #5C5C60;
+  --vega-both-mixed-bg: linear-gradient(135deg, #75ACA1 0%, #8AA7BE 100%);
+  --vega-both-mixed-fg: #2B3A3C;
 
-  --vega-warning-bg: rgba(255, 59, 48, 0.303);
-  --vega-warning-fg: #A82720;
+  --vega-cas1-bg: rgba(219, 135, 158, 0.470);
+  --vega-cas1-fg: #784A57;
+  --vega-cas2-bg: rgba(214, 164, 93, 0.485);
+  --vega-cas2-fg: #715731;
+  --vega-cas3-bg: rgba(76, 179, 198, 0.378);
+  --vega-cas3-fg: #2B6671;
+  --vega-cas4-bg: rgba(137, 183, 122, 0.413);
+  --vega-cas4-fg: #4D6644;
 
-  --vega-star: #B25000;
+  --vega-warning-bg: rgba(217, 109, 104, 0.368);
+  --vega-warning-fg: #894542;
+
+  --vega-star: #967341;
 }
 
-/* ================================================================
-   标签行容器
-   ------------------------------------------------------------
-   需求：不论刊名长短，所有标签统一从「下一行」开始，不随刊名折行而错位。
-   做法：把整组标签包进一个 block 级容器 —— block 元素必然另起一行，
-        且不继承刊名的行内排版，故与刊名长度完全无关。
-   ================================================================ */
 .vega-tagline {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   margin: 3px 0 2px;
-  /* 关键：不设 width:100%，让容器宽度自适应父元素，
-     避免撑破知网的表格列宽。 */
+
   max-width: 100%;
 }
 
-/* ================================================================
-   标签基类
-   ================================================================ */
 .vega-tag {
   display: inline-flex;
   align-items: center;
-  margin-left: 0;                      /* 间距由 .vega-tagline 的 gap 统一提供 */
+  margin-left: 0;
   padding: 0 8px;
   height: 21px;
-  border-radius: 6px;                  /* iOS 风格圆角 */
+  border-radius: 8px;
   font-size: 12px;
   line-height: 21px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
@@ -96,13 +61,12 @@
   cursor: pointer;
   user-select: none;
   border: none;
-  /* 防御性样式：部分平台的表格列有固定宽度或 overflow:hidden，
-     多个标签并排时容易被裁掉后面的。 */
+
   flex: 0 0 auto;
   max-width: none;
   transition: transform 0.15s cubic-bezier(0.32, 0.72, 0, 1),
               filter 0.15s ease;
-  /* 默认（未知类型）：中性灰 tinted */
+
   background: rgba(120, 120, 128, 0.26);
   color: #1C1C1E;
 }
@@ -113,9 +77,6 @@
 }
 .vega-tag:active { transform: scale(0.96); }
 
-/* ================================================================
-   语义 → 配色（具体色值全在变量里，由 themes.js 决定）
-   ================================================================ */
 .vega-cssci-source { background: var(--vega-cssci-bg); color: var(--vega-cssci-fg); }
 .vega-cssci-ext    { background: var(--vega-cssci-ext-bg); color: var(--vega-cssci-ext-fg); }
 .vega-cscd-core    { background: var(--vega-cscd-bg); color: var(--vega-cscd-fg); }
@@ -127,14 +88,6 @@
 .vega-cas-4        { background: var(--vega-cas4-bg); color: var(--vega-cas4-fg); }
 .vega-warning      { background: var(--vega-warning-bg); color: var(--vega-warning-fg); font-weight: 600; }
 
-/* ================================================================
-   双库收录（CSSCI + CSCD）—— 实心渐变 + 投影，最醒目
-   ------------------------------------------------------------
-   集中投稿时这是最想一眼看到的标签，故给它最高视觉权重：
-   唯一的渐变、唯一的投影、加粗字重。紫 → 品红渐变，与
-   单库的黄/灰、北核的蓝、分区的红/橙/青全部拉开距离。
-   内边距仍为 8px，否则同排标签宽度会不一致。
-   ================================================================ */
 .vega-both-core {
   background: var(--vega-both-bg);
   color: var(--vega-both-fg);
@@ -152,13 +105,6 @@
   opacity: 1;
 }
 
-/* ================================================================
-   Top 星标
-   ------------------------------------------------------------
-   中科院 1 区按官方规则 100% 是 Top，2 区约 12% 是 Top。
-   1 区全都是 Top 会让这个标记失去分辨力（看着像「1 区的默认后缀」），
-   于是给任何分区的 Top 都加一颗 ★——既是醒目标记，也呼应 Vega 织女星。
-   ================================================================ */
 .vega-star {
   color: var(--vega-star);
   font-size: 11px;
@@ -167,26 +113,25 @@
   font-weight: 600;
 }
 
-/* ================================================================
-   详情浮层
-   毛玻璃 + 18px 圆角 + hairline 描边
-   ================================================================ */
 .vega-pop {
   position: absolute;
   z-index: 2147483000;
   min-width: 264px;
   max-width: 352px;
   padding: 13px 15px 12px;
-  /* 毛玻璃：半透明 + 背景模糊，深色页面上文字仍以深色为主，故底色固定偏亮 */
+
   background: rgba(250, 250, 252, 0.78);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
   backdrop-filter: saturate(180%) blur(24px);
-  color: #1C1C1E;                     /* systemLabel */
-  border: 0.5px solid rgba(60, 60, 67, 0.18);  /* hairline separator */
-  border-radius: 18px;
+  color: #1C1C1E;
+  border: 0.5px solid rgba(60, 60, 67, 0.18);
+  border-radius: 22px;
+  box-sizing: border-box;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
   box-shadow:
     0 1px 1px rgba(0, 0, 0, 0.04),
-    0 8px 24px rgba(0, 0, 0, 0.12);   /* iOS 弹层阴影：两层叠加 */
+    0 8px 24px rgba(0, 0, 0, 0.12);
   font-size: 12.5px;
   line-height: 1.55;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
@@ -205,13 +150,12 @@
   .vega-tag { transition: none; }
 }
 
-/* 标题栏 */
 .vega-pop-title {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 600;                    /* SF Pro Semibold */
+  font-weight: 600;
   color: #1C1C1E;
   padding-bottom: 9px;
   margin-bottom: 9px;
@@ -219,7 +163,6 @@
   word-break: break-word;
 }
 
-/* 键值行 */
 .vega-pop-row {
   display: flex;
   gap: 10px;
@@ -228,13 +171,12 @@
 }
 .vega-pop-k {
   flex: 0 0 58px;
-  color: #8E8E93;                       /* systemGray2 → 次要文字 */
+  color: #8E8E93;
   font-size: 11.5px;
   font-weight: 400;
 }
 .vega-pop-v { flex: 1; color: #1C1C1E; min-width: 0; word-break: break-word; }
 
-/* 预警提示 —— systemRed tinted */
 .vega-pop-top {
   color: var(--vega-star);
   font-weight: 600;
@@ -252,26 +194,22 @@
   line-height: 1.55;
 }
 
-/* 页脚 */
 .vega-pop-foot {
   margin-top: 9px;
   padding-top: 8px;
   border-top: 0.5px solid rgba(60, 60, 67, 0.1);
-  color: #AEAEB2;                       /* systemGray3 */
+  color: #AEAEB2;
   font-size: 10.5px;
   line-height: 1.5;
 }
 
-/* ================================================================
-   中科院小类分区列表
-   ================================================================ */
 .vega-pop-minors {
   margin: 5px 0 2px;
   padding: 0;
   list-style: none;
   max-height: 158px;
   overflow-y: auto;
-  /* 细滚动条 */
+
   scrollbar-width: thin;
   scrollbar-color: rgba(60, 60, 67, 0.22) transparent;
 }
@@ -294,3 +232,6 @@
   font-weight: 600;
   color: #007AFF;
 }
+
+.vega-tag:focus-visible { outline: 2px solid #247FA6; outline-offset: 2px; }
+.vega-pop-error { color: #B13B36; padding-top: 8px; font-size: 12px; }

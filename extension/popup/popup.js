@@ -1,13 +1,10 @@
-/**
- * Vega · 期刊收录标签 — Popup 逻辑
- * 显示标签图例、开关、重扫、本页诊断与数据版本。
- */
+/** Public edition settings: index visibility, themes and colors. */
+
 (function () {
   'use strict';
 
   const $ = (id) => document.getElementById(id);
 
-  /** HTML 转义，防止错误信息里的特殊字符破坏面板结构 */
   function esc(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;')
@@ -16,199 +13,270 @@
       .replace(/"/g, '&quot;');
   }
 
+  const TICK =
+    '<svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">' +
+    '<path d="M2.4 6.3 L4.9 8.8 L9.6 3.6" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
   const Themes = window.VegaThemes || {};
 
-  // ------------------------------------------------------------ 标签配色
-  /**
-   * 色值不再写死在这里 —— 全部取自 core/themes.js，映射表也直接用它的 ROLE。
-   * 图例必须跟页面上的标签用同一份数据，否则会出现「图例是这色、
-   * 实际标签是另一色」这种最难排查的不一致。
-   */
-  const ROLE = Themes.ROLE || {};
+  const DBS = [
+    { id: 'cssci', label: 'CSSCI', sub: '来源版 / 扩展版', group: '' },
+    { id: 'cscd', label: 'CSCD', sub: '核心库 / 扩展库', group: '' },
+    { id: 'beike', label: '北大核心', sub: '中文核心期刊要目总览', group: '' },
+    { id: 'cas', label: '中科院分区', sub: '大类 1–4 区，含 Top', group: '' },
+    { id: 'warning', label: '预警名单', sub: '国际期刊预警名单', group: '' },
+  ];
+  const DB_IDS = DBS.map((d) => d.id);
+
+  function normalizeDbs(list) {
+    if (!Array.isArray(list)) return DB_IDS.slice();
+    const set = new Set(list.filter((x) => DB_IDS.indexOf(x) !== -1));
+    return set.size ? DB_IDS.filter((id) => set.has(id)) : DB_IDS.slice();
+  }
+
+  let curDbs = DB_IDS.slice();
+
+  const DARK_MQ = window.matchMedia('(prefers-color-scheme: dark)');
+  let uiPref = 'auto';
+
+  function resolveUi() {
+    if (uiPref === 'light' || uiPref === 'dark') return uiPref;
+    return DARK_MQ.matches ? 'dark' : 'light';
+  }
+
+  function applyUi() {
+    document.documentElement.className = 'ui-' + resolveUi();
+  }
+
+  function onSystemThemeChange() {
+    if (uiPref === 'auto') applyUi();
+  }
+  if (DARK_MQ.addEventListener) DARK_MQ.addEventListener('change', onSystemThemeChange);
+  else if (DARK_MQ.addListener) DARK_MQ.addListener(onSystemThemeChange);
+
+  function renderUiPicker() {
+    const box = $('uiSeg');
+    if (!box) return;
+    box.querySelectorAll('.ui-opt').forEach((b) => {
+      b.setAttribute('aria-pressed', b.getAttribute('data-ui') === uiPref ? 'true' : 'false');
+    });
+  }
+
+  const uiSeg = $('uiSeg');
+  if (uiSeg) {
+    uiSeg.addEventListener('click', (e) => {
+      const b = e.target.closest ? e.target.closest('.ui-opt') : null;
+      if (!b) return;
+      const v = b.getAttribute('data-ui');
+      if (v !== 'auto' && v !== 'light' && v !== 'dark') return;
+      uiPref = v;
+      applyUi();
+      renderUiPicker();
+      chrome.storage.local.set({ ui: v });
+    });
+  }
+
+  const FOLDS = [
+    { key: 'th', panel: $('thPanel'), toggle: $('thToggle') },
+    { key: 'db', panel: $('dbPanel'), toggle: $('dbToggle') },
+  ].filter((f) => f.panel && f.toggle);
+
+  function setOpen(fold, open) {
+    fold.panel.classList.toggle('open', !!open);
+    fold.toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function isOpen(fold) {
+    return fold.panel.classList.contains('open');
+  }
+
+  function closeOthers(except) {
+    FOLDS.forEach((f) => {
+      if (f !== except) setOpen(f, false);
+    });
+  }
+
+  FOLDS.forEach((f) => {
+    f.toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const next = !isOpen(f);
+      closeOthers(f);
+      setOpen(f, next);
+    });
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    FOLDS.forEach((f) => {
+      if (!isOpen(f)) return;
+      if (f.panel.contains(e.target) || f.toggle.contains(e.target)) return;
+      setOpen(f, false);
+    });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    let hit = null;
+    FOLDS.forEach((f) => { if (isOpen(f)) hit = f; });
+    if (!hit) return;
+    setOpen(hit, false);
+    hit.toggle.focus();
+  });
 
   let curTheme = Themes.DEFAULT_THEME || 'vega';
-  // 自定义模式的当前色值表（null = 还没动过，用出厂色）
   let curCustom = null;
 
-  /** 当前生效的主题对象：自定义模式现场求解，其余按 id 取 */
-  function currentTheme() {
-    if (curTheme === 'custom' && Themes.buildCustom) return Themes.buildCustom(curCustom);
-    return Themes.getTheme ? Themes.getTheme(curTheme) : null;
-  }
-
-  // 预览条：挑这套色卡里最有代表性的 6 枚，冷暖浓淡一眼看得出
-  const PREVIEW = ['both', 'cssci', 'beike', 'cas1', 'cas2', 'cas3'];
-
-  function swatchHTML(t) {
-    const css = t.css;
-    const bars = PREVIEW.map((r) => '<i style="background:' + css[r].bg + '"></i>').join('');
-    return (
-      '<button class="th" type="button" data-id="' + esc(t.id) + '" ' +
-      'aria-pressed="' + (t.id === curTheme ? 'true' : 'false') + '">' +
-      '<span class="th-bar">' + bars + '</span>' +
-      '<span class="th-nm">' + esc(t.name) + '</span></button>'
-    );
-  }
-
   function renderThemePicker() {
-    const box = $('themes');
-    if (!box || !Themes.THEMES) return;
-    let html = Themes.THEMES.map(swatchHTML).join('');
-    // 「自定义」永远排在最后：虚线框 + 当前自定义色预览
-    if (Themes.buildCustom) {
-      const ct = Themes.buildCustom(curCustom);
-      const bars = PREVIEW.map((r) => '<i style="background:' + ct.css[r].bg + '"></i>').join('');
-      html +=
-        '<button class="th th-custom" type="button" data-id="custom" ' +
-        'aria-pressed="' + (curTheme === 'custom' ? 'true' : 'false') + '">' +
-        '<span class="th-bar">' + bars + '</span>' +
-        '<span class="th-nm">自定义</span></button>';
-    }
-    box.innerHTML = html;
-
-    box.querySelectorAll('.th').forEach((b) => {
-      b.addEventListener('click', () => pickTheme(b.getAttribute('data-id')));
-    });
+    renderCurrent();
     renderCustomPanel();
   }
 
-  function pickTheme(id) {
-    curTheme = id;
-    chrome.storage.local.set({ theme: id }, () => {
-      renderThemePicker();
-      renderLegend();
-      // 已经打开的标签页里的内容脚本会自己监听 storage.onChanged 换装，
-      // 不需要重扫，也不必刷新页面。
-    });
+  function renderCurrent() {
+    const nm = $('thCurNm');
+    if (!nm) return;
+    nm.textContent = '自定义配色';
   }
 
-  // ------------------------------------------------------------ 自定义配色
+  let ccBuilt = false;
+
   function renderCustomPanel() {
     const panel = $('customPanel');
     if (!panel) return;
-    const show = curTheme === 'custom' && !!Themes.buildCustom;
+    const show = !!Themes.buildCustom;
     panel.style.display = show ? 'block' : 'none';
-    if (!show) return;
+    if (!show) { ccBuilt = false; return; }
 
-    const map = Object.assign({}, Themes.customDefaults(), curCustom || {});
+    const map = curTheme === 'custom' ? Themes.buildCustom(curCustom).custom : Themes.customDefaults();
     const keys = Themes.CUSTOM_KEYS || [];
-    $('customColors').innerHTML = keys.map(([role, , label]) => {
-      const v = map[role] || '';
-      return (
-        '<div class="cc-row">' +
-        '<span class="cc-lb">' + esc(label) + '</span>' +
-        '<input type="color" data-role="' + esc(role) + '" value="' + esc(v) + '">' +
-        '<input type="text" class="cc-hex" data-role="' + esc(role) + '" value="' + esc(v) + '" ' +
-        'maxlength="7" spellcheck="false" autocomplete="off"></div>'
-      );
-    }).join('');
 
-    $('customColors').querySelectorAll('input[type="color"]').forEach((inp) => {
-      inp.addEventListener('input', () => {
-        setCustomColor(inp.getAttribute('data-role'), inp.value);
-        const hex = $('customColors').querySelector('.cc-hex[data-role="' + inp.getAttribute('data-role') + '"]');
-        if (hex) { hex.value = inp.value.toUpperCase(); hex.classList.remove('cc-bad'); }
+    if (!ccBuilt) {
+      $('customColors').innerHTML = keys.map(([role, , label]) => {
+        const v = map[role] || '';
+        return (
+          '<div class="cc-row">' +
+          '<label class="cc-lb" for="cc-' + esc(role) + '">' + esc(label) + '</label>' +
+          '<input type="color" aria-label="' + esc(label) + '取色器" data-role="' + esc(role) + '" value="' + esc(v) + '">' +
+          '<input id="cc-' + esc(role) + '" type="text" class="cc-hex" data-role="' + esc(role) + '" value="' + esc(v) + '" ' +
+          'maxlength="7" spellcheck="false" autocomplete="off"></div>'
+        );
+      }).join('');
+
+      $('customColors').querySelectorAll('input[type="color"]').forEach((inp) => {
+        inp.addEventListener('input', () => {
+          setCustomColor(inp.getAttribute('data-role'), inp.value);
+          const hex = $('customColors').querySelector('.cc-hex[data-role="' + inp.getAttribute('data-role') + '"]');
+          if (hex) { hex.value = inp.value.toUpperCase(); hex.classList.remove('cc-bad'); }
+        });
       });
-    });
-    $('customColors').querySelectorAll('.cc-hex').forEach((inp) => {
-      inp.addEventListener('input', () => {
-        const role = inp.getAttribute('data-role');
-        const ok = Themes.normalizeHex(inp.value);
-        inp.classList.toggle('cc-bad', !ok);
-        if (ok) {
-          setCustomColor(role, ok);
-          const col = $('customColors').querySelector('input[type="color"][data-role="' + role + '"]');
-          if (col) col.value = ok;
-        }
+      $('customColors').querySelectorAll('.cc-hex').forEach((inp) => {
+        inp.addEventListener('input', () => {
+          const role = inp.getAttribute('data-role');
+          const ok = Themes.normalizeHex(inp.value);
+          inp.classList.toggle('cc-bad', !ok);
+          inp.setAttribute('aria-invalid', ok ? 'false' : 'true');
+          if (ok) {
+            setCustomColor(role, ok);
+            const col = $('customColors').querySelector('input[type="color"][data-role="' + role + '"]');
+            if (col) col.value = ok;
+          }
+        });
+      });
+      ccBuilt = true;
+    }
+
+    keys.forEach(([role]) => {
+      const v = map[role] || '';
+      $('customColors').querySelectorAll('[data-role="' + role + '"]').forEach((inp) => {
+        if (inp !== document.activeElement && inp.value !== v) inp.value = v;
       });
     });
   }
 
-  /** 改一个槽位色：更新本地表 → 存 storage → 图例/预览条即时重刷 */
   function setCustomColor(role, hex) {
-    curCustom = Object.assign({}, Themes.customDefaults(), curCustom || {});
+    curCustom = curTheme === 'custom' ? Themes.buildCustom(curCustom).custom : Themes.customDefaults();
     curCustom[role] = hex;
+    curTheme = 'custom';
     chrome.storage.local.set({ theme: 'custom', custom: curCustom }, () => {
       renderThemePicker();
-      renderLegend();
     });
   }
 
   function resetCustom() {
     curCustom = null;
-    chrome.storage.local.set({ custom: null }, () => {
-      renderThemePicker();
-      renderLegend();
+    curTheme = Themes.DEFAULT_THEME;
+    $('customColors').querySelectorAll('.cc-bad').forEach((inp) => {
+      inp.classList.remove('cc-bad');
+      inp.setAttribute('aria-invalid', 'false');
     });
-  }
-
-  // ------------------------------------------------------------ 标签图例
-  // 文字与 style.css 的 .vega-<key> 一一对应（validate.js 会校验两边不脱节）。
-  // top:true 的条目渲染成「名称 ★Top」——1 区按官方规则 100% 是 Top，
-  // 图例里就该长它实际的样子。
-  const LEGEND = [
-    { t: 'CSSCI+CSCD', k: 'both-core' },
-    { t: 'CSSCI+CSCD 混合', k: 'both-mixed' },
-    { t: 'CSSCI', k: 'cssci-source' },
-    { t: 'CSSCI扩展', k: 'cssci-ext' },
-    { t: 'CSCD', k: 'cscd-core' },
-    { t: 'CSCD扩展', k: 'cscd-ext' },
-    { t: '北核', k: 'beike' },
-    { t: '中科院1区', k: 'cas-1', top: true },
-    { t: '中科院2区', k: 'cas-2' },
-    { t: '中科院3区', k: 'cas-3' },
-    { t: '中科院4区', k: 'cas-4' },
-    { t: '预警', k: 'warning' },
-  ];
-
-  function starSpan(css) {
-    return '<span style="color:' + css.star + ';font-weight:600">★</span>';
-  }
-
-  function renderLegend() {
-    const el = $('legend');
-    if (!el) return;
-    const t = currentTheme();
-    const css = t ? t.css : {};
-    let html = LEGEND.map((b) => {
-      const v = css[ROLE[b.k]];
-      if (!v) return '';
-      let label = esc(b.t);
-      let style = 'background:' + v.bg + ';color:' + v.fg;
-      if (b.k === 'warning') style += ';font-weight:600';
-      if (b.k === 'both-core' || b.k === 'both-mixed') style += ';font-weight:600';
-      if (b.top) label += ' ' + starSpan(css) + 'Top';
-      return '<span class="chip" style="' + style + '">' + label + '</span>';
-    }).join('');
-
-    // 2 区也有 Top（约 12%），单独放一个示例块说明它不是 1 区专属
-    if (t && css.cas2) {
-      html +=
-        '<span class="chip" style="background:' + css.cas2.bg + ';color:' + css.cas2.fg + '">' +
-        '中科院2区 ' + starSpan(css) + 'Top</span>';
-    }
-    el.innerHTML = html;
-
-    const note = $('legendNote');
-    if (note) {
-      note.innerHTML =
-        '<b>★ Top</b> 是中科院「期刊分区表」的 Top 标记，不是第四类等次：' +
-        '<b>1 区按官方规则全部是 Top</b>，2 区约 12%（338 / 2844）为 Top，3、4 区没有。' +
-        '所以本插件对任何分区都显示 ★Top，不只是 1 区。';
-    }
+    chrome.storage.local.set({ theme: curTheme, custom: null }, () => {
+      renderThemePicker();
+    });
   }
 
   const customResetBtn = $('customReset');
   if (customResetBtn) customResetBtn.addEventListener('click', resetCustom);
 
-  // ------------------------------------------------------------ 开关
+  function renderDbList() {
+    const box = $('dbList');
+    if (box && !box.childElementCount) {
+      let lastGroup = null;
+      box.innerHTML = DBS.map((d) => {
+        let head = '';
+        if (d.group !== lastGroup) {
+          if (d.group) head = '<div class="db-grp">' + esc(d.group) + '</div>';
+          lastGroup = d.group;
+        }
+        return head +
+          '<label class="db-item">' +
+          '<input type="checkbox" data-db="' + esc(d.id) + '">' +
+          '<span class="db-box">' + TICK + '</span>' +
+          '<span class="db-tx">' + esc(d.label) +
+          '<span class="sub">' + esc(d.sub) + '</span></span></label>';
+      }).join('');
+      box.querySelectorAll('input[data-db]').forEach((inp) => {
+        inp.addEventListener('change', () => {
+          const picked = Array.prototype.slice
+            .call(box.querySelectorAll('input[data-db]'))
+            .filter((x) => x.checked)
+            .map((x) => x.getAttribute('data-db'));
+          curDbs = normalizeDbs(picked);
+          syncDbList();
+          chrome.storage.local.set({ dbs: curDbs });
+        });
+      });
+    }
+    syncDbList();
+  }
+
+  function syncDbList() {
+    const box = $('dbList');
+    if (!box) return;
+    box.querySelectorAll('input[data-db]').forEach((inp) => {
+      inp.checked = curDbs.indexOf(inp.getAttribute('data-db')) !== -1;
+    });
+  }
+
+  const dbAll = $('dbAll');
+  if (dbAll) {
+    dbAll.addEventListener('click', () => {
+      curDbs = DB_IDS.slice();
+      syncDbList();
+      chrome.storage.local.set({ dbs: curDbs });
+    });
+  }
+  const dbNone = $('dbNone');
+  if (dbNone) {
+    dbNone.addEventListener('click', () => {
+      curDbs = ['cssci'];
+      syncDbList();
+      chrome.storage.local.set({ dbs: curDbs });
+    });
+  }
+
   const cb = $('enabled');
   chrome.storage.local.get({ enabled: true }, (st) => {
     cb.checked = st.enabled !== false;
   });
   cb.addEventListener('change', () => {
     chrome.storage.local.set({ enabled: cb.checked }, () => {
-      // 通知所有标签页刷新状态
       chrome.tabs.query({}, (tabs) => {
         tabs.forEach((t) => {
           if (t.id != null) chrome.tabs.sendMessage(t.id, { type: 'rescan' }, () => void chrome.runtime.lastError);
@@ -217,7 +285,6 @@
     });
   });
 
-  // ------------------------------------------------------------ 重新扫描
   $('rescan').addEventListener('click', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const t = tabs && tabs[0];
@@ -235,7 +302,6 @@
     });
   });
 
-  // ------------------------------------------------------------ 诊断
   const SITE_CN = {
     cnki: '中国知网', wos: 'Web of Science', scholar: 'Google 学术',
     baidu: '百度学术', sd: 'ScienceDirect', pubmed: 'PubMed',
@@ -258,7 +324,6 @@
       rows.push(['页面识别到结果', d.found || 0, d.found ? 'good' : 'bad']);
       rows.push(['匹配到数据集', d.matched || 0, d.matched ? 'good' : 'bad']);
       rows.push(['已挂标签', d.tagged || 0, d.tagged ? 'good' : 'bad']);
-      // 标签：应渲染数 vs 实际可见数，不一致说明被页面 CSS 裁剪
       if (d.badgeTotal) {
         const okClip = d.badgeShown >= d.badgeTotal;
         rows.push([
@@ -285,81 +350,36 @@
       html +=
         '<div class="diag-err">有 <b>' + (d.badgeTotal - d.badgeShown) + '</b> 个标签被页面裁剪未显示' +
         '（该列表格列宽过窄）。收录信息仍完整，可点击标签在详情浮层中查看。</div>';
-    } else if (d.misses && d.misses.length) {
-      html +=
-        '<div class="diag-miss">未匹配到数据集（不显示标签属正常）：' +
-        d.misses.map((m) => esc(m)).join('、') +
-        '</div>';
     }
     body.innerHTML = html;
   }
 
-  // 打开 popup 即拉取当前页状态
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const t = tabs && tabs[0];
     if (!t) return;
     chrome.tabs.sendMessage(t.id, { type: 'getState' }, (resp) => {
       if (chrome.runtime.lastError || !resp) return;
-      // getState 时页面可能还没扫过，主动补一次
       if (resp.diag && resp.diag.found) renderDiag(resp.diag.site, resp.diag);
       else chrome.tabs.sendMessage(t.id, { type: 'rescan' }, () => void chrome.runtime.lastError);
     });
   });
 
-  // ------------------------------------------------------------ 数据版本
-  // 走 service worker 代读，避开 fetch/CSP 问题
-  function readData(name) {
-    return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type: 'readData', name }, (resp) => {
-        const err = chrome.runtime.lastError;
-        if (err) return reject(new Error(err.message));
-        if (!resp || !resp.ok) return reject(new Error((resp && resp.error) || '无响应'));
-        resolve(resp.data);
-      });
-    });
-  }
+  chrome.storage.local.get(
+    { theme: Themes.DEFAULT_THEME || 'vega', custom: null, ui: 'auto', dbs: null },
+    (st) => {
+      if (st && st.theme) curTheme = st.theme === 'custom' ? 'custom' : Themes.DEFAULT_THEME;
+      if (st && st.theme && st.theme !== curTheme) chrome.storage.local.set({ theme: curTheme });
+      if (st && st.custom) curCustom = st.custom;
+      if (st && (st.ui === 'light' || st.ui === 'dark' || st.ui === 'auto')) uiPref = st.ui;
+      curDbs = normalizeDbs(st && st.dbs);
 
-  readData('journals.json')
-    .then((d) => {
-      const m = d.meta, c = m.counts;
-      const rows = [
-        ['CSSCI 来源版', c.cssciSource],
-        ['CSSCI 扩展版', c.cssciExt],
-        ['CSCD 核心库', c.cscdCore],
-        ['CSCD 扩展库', c.cscdExt],
-        ['北大核心', c.beike],
-        ['中科院分区', c.cas],
-        ['其中 Top', c.casTop],
-        ['预警名单', c.warning],
-        ['条目合计', c.total],
-      ];
-      $('info').innerHTML = rows
-        .map(
-          (r) =>
-            '<div class="stat"><span class="k">' + r[0] + '</span><span class="v">' +
-            (r[1] == null ? '—' : r[1]) + '</span></div>'
-        )
-        .join('');
-      $('warn').style.display = 'block';
-      $('warn').innerHTML =
-        '中科院期刊分区表自 <b>2026 年起已停止更新</b>，本插件内置的是 <b>2025 年版（终版）</b>，' +
-        '此后不会变化。<br>本插件仅呈现公开收录信息，不作任何期刊分级评价。';
-    })
-    .catch((e) => {
-      $('warn').style.display = 'block';
-      $('warn').innerHTML =
-        '<b>无法读取内置数据集</b><br>' + esc(e.message) +
-        '<br>请到扩展管理页确认 manifest.json 的 web_accessible_resources 仍包含 ' +
-        'data/journals.json，然后点「重新加载」扩展。';
-    });
+      applyUi();
+      renderUiPicker();
+      renderThemePicker();
+      renderDbList();
 
-  // ------------------------------------------------------------ 初始化
-  // 放在 IIFE 末尾：所有函数都已定义，不依赖 chrome.storage 回调的异步性
-  // —— 哪怕哪天回调变成同步的，也不会踩「用到还没初始化的 const」这种雷。
-  chrome.storage.local.get({ theme: Themes.DEFAULT_THEME || 'vega', custom: null }, (st) => {
-    if (st && st.theme) curTheme = st.theme;
-    if (st && st.custom) curCustom = st.custom;
-    renderThemePicker();
-    renderLegend();
-  });
+      document.body.classList.add('ui-ready');
+      document.documentElement.classList.remove('ui-booting');
+    }
+  );
 })();
