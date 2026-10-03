@@ -97,6 +97,9 @@
   /* The native popup needs an intrinsic width; viewport units feed its auto-sizing loop. */
   html { width: 336px; background: transparent; }
   html[data-embedded="true"] { width: 100%; }
+  html[data-standalone="true"] { width: 100%; min-height: 100%; background: #edf4f7; }
+  html.ui-dark[data-standalone="true"] { background: #171c25; }
+  html[data-standalone="true"] body { width: min(336px, calc(100% - 32px)); margin: 32px auto; }
 
   .ui-booting body { visibility: hidden; animation: ui-booting-fallback 0s linear 0.7s forwards; }
   @keyframes ui-booting-fallback { to { visibility: visible; } }

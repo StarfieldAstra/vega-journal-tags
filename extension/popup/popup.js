@@ -4,6 +4,15 @@
   'use strict';
 
   const $ = (id) => document.getElementById(id);
+  function queryTargetTab(callback) {
+    const target = Number(new URLSearchParams(location.search).get('tabId'));
+    if (new URLSearchParams(location.search).has('tabId') && Number.isInteger(target) && target >= 0) {
+      chrome.tabs.get(target, (tab) => {
+        const error = chrome.runtime.lastError;
+        callback(error ? [] : [tab]);
+      });
+    } else chrome.tabs.query({active: true, currentWindow: true}, callback);
+  }
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -286,7 +295,7 @@
   });
 
   $('rescan').addEventListener('click', () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    queryTargetTab((tabs) => {
       const t = tabs && tabs[0];
       if (!t) return;
       chrome.tabs.sendMessage(t.id, { type: 'rescan' }, (resp) => {
@@ -354,7 +363,7 @@
     body.innerHTML = html;
   }
 
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  queryTargetTab((tabs) => {
     const t = tabs && tabs[0];
     if (!t) return;
     chrome.tabs.sendMessage(t.id, { type: 'getState' }, (resp) => {

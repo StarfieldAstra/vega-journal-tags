@@ -16,6 +16,42 @@ chrome.runtime.onInstalled.addListener((details) => {
 // 数据缓存，避免每次都读盘
 let cache = null;
 
+// Toolbar actions never create a native popup, whose outer window cannot be rounded.
+async function sendSettingsMessage(tabId, message) {
+  const tab = await chrome.tabs.get(tabId);
+  const pending = tab.url && tab.url.startsWith(chrome.runtime.getURL(''))
+    ? chrome.runtime.sendMessage({type: 'vegaSettingsForOwnPage', tabId, message})
+    : chrome.tabs.sendMessage(tabId, {...message, tabId});
+  let timer;
+  try {
+    return await Promise.race([pending, new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Settings receiver timeout')), message.type === 'settingsPanelPing' ? 750 : 3500);
+    })]);
+  } finally { clearTimeout(timer); }
+}
+
+async function openSettingsForTab(tab) {
+  if (!tab || tab.id == null) return {mode: 'unavailable'};
+  const standalone = chrome.runtime.getURL('popup/popup.html?standalone=1');
+  if (tab.url && tab.url.startsWith(standalone)) return {mode: 'settings', tabId: tab.id};
+  try {
+    let receiver;
+    try { receiver = await sendSettingsMessage(tab.id, {type: 'settingsPanelPing'}); } catch (_) {}
+    if (!receiver || !receiver.ok) {
+      await chrome.scripting.executeScript({target: {tabId: tab.id}, files: ['settings-panel.js']});
+    }
+    const response = await sendSettingsMessage(tab.id, {type: 'openSettingsPanel'});
+    if (response && response.ok) return {mode: 'panel'};
+  } catch (_) {}
+  // Browser-internal pages and blocked frames use a full settings tab, never a white popup.
+  const settings = await chrome.tabs.create({url: standalone + '&tabId=' + tab.id});
+  return {mode: 'settings', tabId: settings.id};
+}
+
+chrome.action.onClicked.addListener((tab) => {
+  openSettingsForTab(tab).catch((error) => console.error('Vega settings:', error.message));
+});
+
 async function readDataFile(name) {
   // 只允许读 data/ 下的白名单文件，避免被当成任意文件读取通道
   const ALLOW = { 'journals.json': 1, 'cas_detail.json': 1 };
@@ -34,14 +70,20 @@ async function readDataFile(name) {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && ['settingsPanelReady', 'settingsPanelResize', 'closeSettingsPanel'].includes(msg.type)) {
-    if (!_sender.tab || !_sender.url || !_sender.url.startsWith(chrome.runtime.getURL('popup/popup.html?embedded=1'))) {
+    if (_sender.id !== chrome.runtime.id || !_sender.url || !_sender.url.startsWith(chrome.runtime.getURL('popup/popup.html?embedded=1'))) {
       sendResponse({ok: false});
       return false;
     }
-    chrome.tabs.sendMessage(_sender.tab.id, msg, (response) => {
-      const error = chrome.runtime.lastError;
-      sendResponse(error ? {ok: false} : response || {ok: true});
-    });
+    const tabId = _sender.tab ? _sender.tab.id : Number(msg.tabId);
+    if (!Number.isInteger(tabId) || tabId < 0) { sendResponse({ok: false}); return false; }
+    (async () => {
+      // Messages without sender.tab are allowed only for our own extension documents.
+      if (!_sender.tab) {
+        const tab = await chrome.tabs.get(tabId);
+        if (!tab.url || !tab.url.startsWith(chrome.runtime.getURL(''))) throw new Error('Invalid settings target');
+      }
+      return sendSettingsMessage(tabId, msg);
+    })().then((response) => sendResponse(response || {ok: true}), () => sendResponse({ok: false}));
     return true;
   }
   if (msg && msg.type === 'readMenuStyle') {

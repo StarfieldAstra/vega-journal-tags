@@ -3,8 +3,13 @@
  */
 (function () {
   'use strict';
+  if (globalThis.__vegaSettingsPanelInstalled) return;
+  globalThis.__vegaSettingsPanelInstalled = true;
+  const ownPage = location.protocol === 'chrome-extension:';
+  let ownTabId = null;
+  if (ownPage) chrome.tabs.getCurrent().then((tab) => { ownTabId = tab && tab.id; });
   let panel = null;
-  function close() {
+  function close(failed = false) {
     if (!panel) return;
     const previous = panel;
     panel = null;
@@ -13,9 +18,9 @@
     document.removeEventListener('pointerdown', previous.outside, true);
     document.removeEventListener('keydown', previous.escape, true);
     window.removeEventListener('resize', previous.resize);
-    if (previous.respond) previous.respond({ok: false});
+    if (previous.respond) previous.respond(failed ? {ok: false, panelFailed: true} : {ok: true, closed: true});
   }
-  function open(respond) {
+  function open(respond, tabId) {
     if (panel) { close(); respond({ok: true}); return; }
     const host = document.createElement('div');
     host.setAttribute('data-vega-settings-host', '');
@@ -23,7 +28,7 @@
     const shadow = host.attachShadow({mode: 'closed'});
     const iframe = document.createElement('iframe');
     iframe.title = 'Vega 设置';
-    iframe.src = chrome.runtime.getURL('popup/popup.html?embedded=1&height=' + maxHeight);
+    iframe.src = chrome.runtime.getURL('popup/popup.html?embedded=1&height=' + maxHeight + '&tabId=' + tabId);
     iframe.style.cssText = 'display:block;width:100%;height:100%;border:0;background:transparent;color-scheme:normal';
     shadow.append(iframe);
     const styles = {
@@ -47,12 +52,17 @@
     document.addEventListener('pointerdown', state.outside, true);
     document.addEventListener('keydown', state.escape, true);
     window.addEventListener('resize', state.resize);
-    // A blocked frame never traps the user in an empty panel: leave native popup open.
-    state.timer = setTimeout(() => { if (panel === state) close(); }, 2500);
+    // A blocked frame is removed; the worker opens a standalone settings page.
+    state.timer = setTimeout(() => { if (panel === state) close(true); }, 2500);
   }
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+    if (message && message.type === 'vegaSettingsForOwnPage') {
+      if (!ownPage || ownTabId == null || message.tabId !== ownTabId) return false;
+      message = {...message.message, tabId: ownTabId};
+    }
     if (!message) return false;
-    if (message.type === 'openSettingsPanel') { open(respond); return true; }
+    if (message.type === 'settingsPanelPing') { respond({ok: true}); return false; }
+    if (message.type === 'openSettingsPanel') { open(respond, message.tabId); return true; }
     if (!['settingsPanelReady', 'settingsPanelResize', 'closeSettingsPanel'].includes(message.type)) return false;
     if (message.type === 'settingsPanelReady' && panel) {
       clearTimeout(panel.timer);

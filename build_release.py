@@ -24,9 +24,11 @@ package = OUT / ('vega-journal-tags-v' + version + '.zip')
 source_package = OUT / ('vega-journal-tags-source-v' + version + '.zip')
 if package.exists() or source_package.exists():
     raise RuntimeError('Archive already exists; increase the version rather than overwrite it.')
-if manifest.get('permissions') != ['storage']:
+if manifest.get('permissions') != ['storage', 'activeTab', 'scripting']:
     raise RuntimeError('Unexpected extension permissions')
-refs = [manifest['background']['service_worker'], manifest['action']['default_popup']]
+if 'default_popup' in manifest['action']:
+    raise RuntimeError('Native toolbar popup must stay disabled')
+refs = [manifest['background']['service_worker'], 'popup/popup.html', 'settings-panel.js']
 for entry in manifest['content_scripts']:
     refs.extend(entry.get('js', []))
     refs.extend(entry.get('css', []))
