@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Vega · 期刊收录标签",
-  "version": "1.0.2",
+  "version": "1.3.0",
   "short_description": "在知网、Web of Science 等学术平台直接显示 CSSCI / CSCD / 北核 / 中科院分区收录标签。",
-  "description": "在知网、Web of Science、Google 学术等学术检索平台，直接在刊名旁显示公开收录信息：CSSCI 来源版/扩展版、CSCD 核心库/扩展库、北大核心、中科院大类分区 1–4 区（含 Top 与小类分区），以及国际期刊预警名单。\n\n点击标签查看 ISSN、学科、收录目录、分区明细和预警信息。支持逐项显示开关、清新默认配色、自定义配色，以及浅色/深色/跟随系统的界面主题。工具栏图标直接打开完整圆角设置浮层；浏览器限制页面打开独立设置页。\n\n数据版本：CSSCI 2025–2026、CSCD 2025–2026、北大核心期刊要目总览、中科院分区 2025 终版、国际期刊预警 2020–2025 累计。收录信息以相应目录和公告为准。\n\n全部数据内置，本地运行，不访问外部服务，不收集、不上传浏览记录或检索内容。",
+  "description": "在知网、Web of Science、Google 学术等学术检索平台，直接在检索结果中的刊名旁显示期刊的收录标签：CSSCI 来源版/扩展版、CSCD 核心库/扩展库、北大核心、中科院大类分区 1-4 区（含 Top 与小类分区），并提示中科院《国际期刊预警名单》。\n\n【校内认定】另可选显示山西财经大学校内级别（A1/A2/A3/A4/B1 五档），依据山财校〔2023〕80 号《山西财经大学科研成果管理办法》，覆盖 2261 本。该口径因校而异，仅供该校师生参考，不代表普适的期刊分级。内置数据中 A3 及以下为推定档，可能与你掌握的实际情况有出入——点击标签即可自行升一级、降一级或直接选档，改动会被记住，也可一键还原。最终认定以学校科研管理部门审核为准。\n\n所有标签来源均可在扩展面板中单独开关（校内级别为一个总开关，档位在页面上调），改动即时生效。\n\n【数据版本】CSSCI 2025-2026、CSCD 2025-2026、北大核心期刊要目总览、中科院分区 2025 年版（终版）、山财校〔2023〕80 号五级目录。\n\n【隐私】全部数据内置于插件内，运行时不发起任何网络请求，不收集、不上传任何浏览记录或检索内容，断网亦可正常使用。\n\n支持山西财经大学 WebVPN 代理的知网页面。工具栏直接打开完整圆角浮层；浏览器内部页面打开独立设置页。",
   "icons": {
     "16": "icon16.png",
     "32": "icon32.png",
@@ -28,7 +28,8 @@
     "https://www.sciencedirect.com/*",
     "https://pubmed.ncbi.nlm.nih.gov/*",
     "https://link.springer.com/*",
-    "https://www.semanticscholar.org/*"
+    "https://www.semanticscholar.org/*",
+    "https://webvpn.sxufe.edu.cn/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -62,6 +63,23 @@
       ],
       "run_at": "document_idle",
       "all_frames": false
+    },
+    {
+      "matches": [
+        "https://webvpn.sxufe.edu.cn/*"
+      ],
+      "js": [
+        "core/judge.js",
+        "core/themes.js",
+        "sites/index.js",
+        "content.js",
+        "settings-panel.js"
+      ],
+      "css": [
+        "style.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "action": {
@@ -91,7 +109,8 @@
         "https://www.sciencedirect.com/*",
         "https://pubmed.ncbi.nlm.nih.gov/*",
         "https://link.springer.com/*",
-        "https://www.semanticscholar.org/*"
+        "https://www.semanticscholar.org/*",
+        "https://webvpn.sxufe.edu.cn/*"
       ]
     },
     {

@@ -1,65 +1,21 @@
 # Vega · 期刊收录标签
 
-**v1.0.2** · 在学术检索页面直接查看期刊的公开收录信息。
+当前版本 **v1.3.0**。
 
-Vega 会在刊名旁显示 CSSCI、CSCD、北大核心、中科院分区、Top 及国际期刊预警标签。数据内置，匹配在本地完成，不上传检索记录。
+[下载安装包](https://github.com/xby0328/vega-journal-tags/releases/latest/download/vega-journal-tags-v1.3.0.zip) · [发布页](https://github.com/xby0328/vega-journal-tags/releases/latest)
 
-[下载安装包](https://github.com/xby0328/vega-journal-tags/releases/latest/download/vega-journal-tags-v1.0.2.zip) · [版本发布页](https://github.com/xby0328/vega-journal-tags/releases/latest) · [安装说明](INSTALL.md) · [隐私说明](PRIVACY.md)
+![统一版圆角设置与学校标签](assets/vega-public.png)
 
-![Vega 圆角设置面板与公开收录标签](assets/vega-public.png)
+在知网、Web of Science、Google 学术、百度学术、ScienceDirect、PubMed、Springer、Semantic Scholar 和山西财经大学 WebVPN 的知网结果页旁显示期刊标签。
 
-v1.0.2 取消浏览器原生弹窗，工具栏图标直接打开完整圆角浮层；说明页也支持圆角浮层，浏览器受限页面打开独立设置页。更新后在扩展管理页重新加载 Vega，再刷新原网页或说明页。
+后续只维护一套包含山西财经大学级别的版本，自用与 GitHub 对外发布使用同一份代码和安装包。支持 CSSCI、CSCD、北大核心、中科院分区、预警期刊和山财级别，六类标签可分别关闭。
 
-## 能做什么
+点击标签查看详情；山财 A1、A2、A3、A4、B1 可以点选或升降一级，修改保存在本机，刷新后保留。A1、A2 来自学校目录，A3、A4、B1 中的推断级别会明确标注，不应视为学校最终认定。数据共 24,354 条，含山财级别 2,261 条。
 
-- 显示 CSSCI 来源版 / 扩展版、CSCD 核心库 / 扩展库、北大核心、中科院大类分区和 Top、国际期刊预警。
-- 双库收录合并为一枚标签；点击标签查看 ISSN、学科、小类分区和预警明细。
-- 五项公开来源开关、一组清新默认配色、八类自定义基础色。
-- 完整圆角设置面板，浅色、深色与跟随系统主题。
-- 本地运行，不使用外部匹配服务，不收集或上传浏览记录。
+界面采用完整圆角浮层，右侧格言为一行 *Verify, Evaluate, Grade, Assign*。仅显示自定义配色入口，默认使用清新配色，保留 18 个颜色位供后续标签扩展。浏览器受限页面打开独立设置页。
 
-适配域名包括知网、Web of Science / Clarivate、Google 学术、百度学术、ScienceDirect、PubMed、Springer Link 和 Semantic Scholar。网站调整页面结构时，部分页面的匹配可能受影响。
+安装方法见 [INSTALL.md](INSTALL.md)，数据与权限说明见 [PRIVACY.md](PRIVACY.md)，更新说明见 [RELEASE_NOTES.md](RELEASE_NOTES.md)。
 
-## 安装
+开发：`node validate.js`、`node test_judge.js`、`node test_sites.js`。装有 Playwright 与 Edge 的环境运行 `node test_extension.js` 和 `node test_settings.js`，使用隔离浏览器配置和模拟网页，不读取用户登录信息。`python build_release.py` 生成安装包、源码包与 SHA256 校验文件；可用 `--output-dir` 指定目录。构建脚本拒绝覆盖同版本压缩包。
 
-1. 下载发布页中的 `vega-journal-tags-v1.0.2.zip`，解压到固定文件夹。
-2. 打开 `chrome://extensions` 或 `edge://extensions`，启用开发者模式。
-3. 点击「加载已解压的扩展程序」，选择含 `manifest.json` 的解压目录。
-4. 打开或刷新检索网页即可使用。
-
-也可从本仓库下载源码，加载 `extension/`。安装方式为手动加载，尚未提交扩展商店。
-
-## 数据
-
-| 来源 | 内置版本 |
-|---|---|
-| CSSCI | 2025–2026 来源版与扩展版 |
-| CSCD | 2025–2026 核心库与扩展库 |
-| 北大核心 | 中文核心期刊要目总览 |
-| 中科院分区 | 2025 终版，含 Top 与小类明细 |
-| 国际期刊预警 | 2020–2025 历史累计 |
-
-期刊主表共 **24,354 条**。公开目录之间有重叠；历史预警不表示期刊当前仍在名单内。收录、分区和预警状态以对应目录及公告为准。
-
-## 开发
-
-```text
-node test_judge.js
-node test_extension.js
-node tools/build_themes.js
-python build_release.py
-```
-
-浏览器测试依赖 Playwright 与本机 Edge，使用临时配置及拦截的页面样例，不访问现有浏览器账户。可通过 `NODE_PATH` 指向已有 Playwright 依赖目录。
-
-生成的安装包、源码包和 SHA256 校验和位于 `release/`。如需更换输出目录：
-
-```text
-python build_release.py --output-dir <输出目录>
-```
-
-同版本压缩包不会被覆盖；修改后发布新版本请更新 manifest 和详情页显示的版本号。
-
-## 许可
-
-软件代码采用 [MIT License](LICENSE)。期刊目录及分区信息的相关权利属于对应数据来源，MIT 许可不授予这些目录的额外使用权。
+许可：MIT；期刊目录的权利归原发布机构，使用时请核对原机构最新认定。

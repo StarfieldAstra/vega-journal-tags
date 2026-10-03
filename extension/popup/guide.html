@@ -5,15 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vega · 期刊收录标签 — 使用说明</title>
 <style>
-
+  /* 说明页 —— 配色与弹窗一致：白底 + 边角流光，色彩取自 logo（深空行星环）
+     logo 原色在白底上对比度只有 1.9~2.7:1，不能写字，
+     所以装饰层用原色、文字层用同色相的加深版（≥4.5:1）。 */
   :root {
     color-scheme: light;
-    --glow-1: #6EC6E8;
-    --glow-2: #E79FC0;
-    --glow-3: #C087E0;
-    --accent: #1A7FA6;
-    --accent-2: #B84D77;
-    --accent-3: #9858BC;
+    --glow-1: #6EC6E8;   /* 青辉光，只做装饰 */
+    --glow-2: #E79FC0;   /* 品红环 */
+    --glow-3: #C087E0;   /* 紫环 */
+    --accent: #1A7FA6;   /* 青 4.54:1 */
+    --accent-2: #B84D77; /* 品红 4.81:1 */
+    --accent-3: #9858BC; /* 紫 4.71:1 */
     --good: #0E7A57;
     --warn: #9A6209;
     --bad: #C4382F;
@@ -34,6 +36,9 @@
     font-size: 15px; line-height: 1.7;
   }
 
+  /* 边角流光 —— logo 的行星辉光铺在四角，半径大、透明度低：
+     正文区必须几乎纯白，彩色只在边缘和卡片缝隙里透出来。
+     fixed 铺满视口，这样滚动长页时四角始终有光。 */
   body::before {
     content: "";
     position: fixed; inset: 0; z-index: -1;
@@ -62,12 +67,14 @@
 
   p { margin: 10px 0; }
 
+  /* 卡片 */
   .card {
     background: var(--card); border-radius: 14px; padding: 18px 20px;
     margin: 16px 0;
     box-shadow: 0 0 0 0.5px rgba(0,0,0,0.05), 0 8px 24px rgba(30,45,70,0.08);
   }
 
+  /* 提示条 */
   .note {
     display: flex; gap: 12px; align-items: flex-start;
     padding: 14px 16px; border-radius: 12px; margin: 16px 0; font-size: 14px;
@@ -79,6 +86,7 @@
   .note.ok   { background: rgba(14,122,87,0.09); color: var(--good); }
   .note b { font-weight: 600; }
 
+  /* 表格 */
   table {
     width: 100%; border-collapse: collapse; margin: 14px 0;
     background: var(--card); border-radius: 12px; overflow: hidden;
@@ -93,15 +101,20 @@
   td + td, th + th { border-left: 0.5px solid var(--sep); }
   tbody tr + tr td { border-top: 0.5px solid var(--sep); }
 
+  /* 收录标签徽标 —— 只留形状，颜色由 themes.js 按用户当前色卡注入
+     （data-bk = judge.js 的 Badge key，渲染逻辑见页尾脚本） */
   .bd {
     display: inline-flex; align-items: center;
     padding: 0 8px; height: 21px; border-radius: 6px;
     font-size: 12px; font-weight: 500; letter-spacing: 0.2px;
     white-space: nowrap; flex: 0 0 auto;
-    background: rgba(120, 120, 128, 0.20);
+    background: rgba(120, 120, 128, 0.20);   /* themes.js 加载失败时的兜底 */
   }
-  .bd .st { font-size: 11px; font-weight: 600; }
+  .bd .st { font-size: 11px; font-weight: 600; }  /* ★ Top 星标 */
 
+  /* 标签总览 —— 一屏看完插件会贴出哪些标签。
+     与表格里的 .bd 是同一套上色逻辑（页尾脚本统一处理），
+     区别只在这块是「陈列」而不是「举例」，所以按角色顺序排。 */
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; }
 
   code {
@@ -132,13 +145,21 @@
   <div><b>完全本地运行。</b>插件不发起任何网络请求，全部数据内置在你的电脑上，断网也能用，检索记录不会外泄。</div>
 </div>
 
-<div class="note info"><span class="ic">i</span><div><b>本插件呈现公开收录信息。</b>标签对应 CSSCI、CSCD、北大核心、中科院分区及预警目录。收录和分区以相应目录为准，不构成投稿建议。</div></div>
+<div class="note info">
+  <span class="ic">i</span>
+  <div>
+    <b>本插件呈现收录事实，不替你定级。</b>收录库（CSSCI / CSCD / 北大核心 / 中科院分区）都是公开可查的第三方目录，
+    谁查都一样。校内认定级别（如<b>山财 A1 – B1</b>）则来自某个单位的自定口径 —— <b>因校而异、随文件更新而变</b>，
+    换个学校就不适用。插件把两类信息都列出来，但始终标注来源：<b>山财标签只代表山西财经大学的口径，不是普适的期刊分级</b>。
+    最终认定以你所在单位的科研管理部门审核为准。
+  </div>
+</div>
 
 <h2>标签含义</h2>
 <table>
   <thead><tr><th style="width:110px">标签</th><th>含义</th></tr></thead>
   <tbody>
-    <tr><td><span class="bd" data-bk="both-core">CSSCI+CSCD</span></td><td><b>双库收录</b>：同时是 CSSCI 来源版与 CSCD 核心库。薄荷与晴空渐变是这个插件里最醒目的一个标签 —— 集中投稿时最值得先看这一类。</td></tr>
+    <tr><td><span class="bd" data-bk="both-core">CSSCI+CSCD</span></td><td><b>双库收录</b>：同时是 CSSCI 来源版与 CSCD 核心库。紫色渐变是这个插件里最醒目的一个标签 —— 集中投稿时最值得先看这一类。</td></tr>
     <tr><td><span class="bd" data-bk="cssci-source">CSSCI</span></td><td>CSSCI（中文社会科学引文索引）<b>来源期刊</b>，2025–2026 版</td></tr>
     <tr><td><span class="bd" data-bk="cssci-ext">CSSCI扩展</span></td><td>CSSCI <b>扩展版</b>来源期刊</td></tr>
     <tr><td><span class="bd" data-bk="cscd-core">CSCD</span></td><td>CSCD（中国科学引文数据库）<b>核心库</b>，2025–2026 版</td></tr>
@@ -150,14 +171,19 @@
     <tr><td><span class="bd" data-bk="cas-4">中科院4区</span></td><td>大类 4 区</td></tr>
     <tr><td><span class="bd" data-bk="cas-1">中科院1区 <span class="st">★</span>Top</span> <span class="bd" data-bk="cas-2">中科院2区 <span class="st">★</span>Top</span></td><td>该刊同时入选分区表 <b>Top 期刊</b>。官方规则：<b>1 区全部是 Top</b>，2 区约 12%（338/2844）择优入选，3、4 区不设。Top 直接并入分区标签文字并加 ★，不单独占一个标签位（避免在窄列里被挤掉），<b>任何分区有 Top 都会显示 ★</b></td></tr>
     <tr><td><span class="bd" data-bk="warning">预警</span></td><td>曾列入中科院《国际期刊预警名单》，点击标签可看年份与原因。<b>投稿前请务必核实</b></td></tr>
-    </tbody>
+    <tr><td><span class="bd" data-bk="sxufe-a1">山财A1</span></td><td rowspan="5"><b>校内认定（山西财经大学口径）</b>。依据《山西财经大学科研成果管理办法》（山财校〔2023〕80 号）的五级目录：<b>学校认定的最高级别 → 最低级别</b>。<br><br>刻意做成描边淡底而非实心块，以免被误读成与 CSSCI 同等权威；<b>底色与描边由深到浅逐档递减</b>，档位高低一眼可辨，不用去数文字。<br><br><b>点这个标签可以自己改级别</b>：弹出的浮层里有升一级 / 降一级、五档直达按钮，以及「还原成默认」。数据里标错、或你知道得更准时，直接改，改完立刻生效并记住。<span class="muted">（内置数据里没有 A4 —— 校办法把这一档单列为候选，源文件里无独立条目。）</span></td></tr>
+    <tr><td><span class="bd" data-bk="sxufe-a2">山财A2</span></td></tr>
+    <tr><td><span class="bd" data-bk="sxufe-a3">山财A3</span></td></tr>
+    <tr><td><span class="bd" data-bk="sxufe-a4">山财A4</span></td></tr>
+    <tr><td><span class="bd" data-bk="sxufe-b1">山财B1</span></td></tr>
+  </tbody>
 </table>
 
 <h2>标签总览</h2>
 <div class="card">
   <p style="margin:0 0 4px">下面是插件会贴出的全部标签，<b>按你在扩展面板里选的配色实时上色</b> —— 换一套配色，这里跟着变，所见即所得。</p>
   <div class="chips" id="allBadges"></div>
-  <p class="muted" style="margin:10px 0 0">不需要的来源可以在扩展面板的「收录标签」里取消勾选，勾选变化会立刻反映到已打开的页面上。</p>
+  <p class="muted" style="margin:10px 0 0">不需要的来源可以在扩展面板的「收录标签」里取消勾选，勾选变化会立刻反映到已打开的页面上。最后两枚是<b>校内认定</b>，与前面的公开收录库性质不同。</p>
 </div>
 
 <h2>数据版本</h2>
@@ -169,7 +195,8 @@
     <tr><td>北大核心</td><td>中文核心期刊要目总览</td><td>北大核心收录刊</td></tr>
     <tr><td>中科院分区</td><td><b>2025 年版（终版）</b></td><td>含大类分区、Top 标记与小类分区明细</td></tr>
     <tr><td>国际期刊预警</td><td>2020–2025 累计</td><td>命中即加「预警」标签</td></tr>
-    </tbody>
+    <tr><td>山财级别</td><td>山财校〔2023〕80 号</td><td><b>校内口径</b>，仅对山西财经大学适用。覆盖办法五级目录共 <b>2261 本</b>；其中 A3 及以下属推定档（还需核验主办单位是否符合省厅「国家级学术刊物」条件），<b>标错了可以直接点标签改</b></td></tr>
+  </tbody>
 </table>
 
 <div class="card" id="dsCard" style="display:none">
@@ -193,7 +220,8 @@
     <li><b>CSSCI 集刊未收录</b>（约 200 余种），集刊不会显示 CSSCI 标签。</li>
     <li><b>Google 学术</b>会把过长的刊名截断（如「Journal of Ver...」），截断后匹配不到，属正常现象。</li>
     <li>预警名单是<b>历史累计</b>（2020–2025），不代表该刊当下仍在名单内，请以官方最新公告为准。</li>
-    </ul>
+    <li><b>山财级别只对山西财经大学有意义</b>，且是校内自定口径，不是普适分级。A1/A2 是办法里明文列入的目录；<b>A3/A4/B1 属推定档</b> —— 由 CSSCI 扩展版、CSCD 扩展库等条件反推，仍需核验主办单位是否符合山西省教育厅「国家级学术刊物」条件，这一步必须人工做。<b>所以内置数据里推定档可能与你手里的实际情况有出入</b>：发现标错了，<b>点标签直接在页面上改</b>（升一级 / 降一级 / 五档直达），改动会被记住，也可一键还原成默认。最终认定以学校科研管理部门审核为准。</li>
+  </ul>
 </div>
 
 <h2>面板设置</h2>
@@ -201,7 +229,8 @@
   <thead><tr><th style="width:130px">设置项</th><th>说明</th></tr></thead>
   <tbody>
     <tr><td><b>启用标签显示</b></td><td>总开关。关掉后所有页面不再注入任何标签，已打开的页面会立即恢复原样。</td></tr>
-    <tr><td><b>标签配色</b></td><td>一组清新默认配色，点击「自定义配色」可编辑八类基础色，扩展版、渐变和文字色自动推导。可一键恢复默认。<b>只影响标签外观，不改判定</b>。</td></tr>
+    <tr><td><b>收录标签</b></td><td>点开展开，勾选你关心的来源。上半部分是<b>公开收录库</b>（CSSCI / CSCD / 北大核心 / 中科院分区 / 预警名单），下半部分是<b>校内认定</b>（山财级别）—— 两类性质不同，面板里分组摆开。<b>改动立刻生效</b>，不需要刷新页面。级别不在这里单独设开关：<b>山财级别只有这一个开关</b>，A1 到 B1 五档都在它下面；要换档位请<b>在网页上点那个标签</b>，浮层里可以升一级、降一级或直接选档。</td></tr>
+    <tr><td><b>标签配色</b></td><td>点开展开选色卡，六套内置 + 一套自定义（可逐个槽位取色或填 hex）。<b>只影响标签外观，不改判定</b>。</td></tr>
     <tr><td><b>界面主题</b></td><td>默认<b>跟随系统</b>：系统切深色模式，弹窗跟着切。也可以手动锁定浅色或深色。界面换色不影响网页上的标签。</td></tr>
   </tbody>
 </table>
@@ -236,8 +265,8 @@
 </div>
 
 <footer>
-  CSSCI 2025–2026｜CSCD 2025–2026｜北大核心｜中科院分区 2025 终版<br>
-  本插件仅呈现公开收录信息，数据版本与目录来源如上。
+  CSSCI 2025–2026｜CSCD 2025–2026｜北大核心｜中科院分区 2025 终版｜山财校〔2023〕80 号<br>
+  本插件呈现公开收录信息；山财级别为山西财经大学校内口径，不代表普适分级。
 </footer>
 
 <script src="../core/themes.js"></script>

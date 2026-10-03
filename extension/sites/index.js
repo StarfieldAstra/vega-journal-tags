@@ -1,7 +1,7 @@
 /**
  * 站点适配器
  *
- * 每个适配器负责：从页面 DOM 中找出「期刊名」所在��元素与结果条目容器。
+ * 每个适配器负责：从页面 DOM 中找出「期刊名」所在元素与结果条目容器。
  * 核心接口：
  *   match()  → 判断当前 URL 是否属于本站（入参是「站点标识」，非裸 host）
  *   find()   → 返回 [{ nameEl, container }]，nameEl 是刊名文本节点所在元素
@@ -12,7 +12,7 @@
  *   https://webvpn.xxx.edu.cn/https/77726476706e69737468656265737421.../kns.cnki.net/kns8/...
  * 此时裸 host 匹配必然失效，故先做一次「站点标识提取」：
  *   1) 若 host 本身是已知站点 → 直接用
- *   2) 否则在路径中搜索已知域名 → 用它
+ *   2) 若为 WebVPN 域名，在解码后的路径中搜索完整学术域名 → 用它
  * 这样 content.js 传入的 h 已是真实站点标识，各适配器无需关心 VPN。
  */
 
@@ -42,11 +42,22 @@ function extractSiteKey(href) {
   } catch (e) {
     return '';
   }
-  const host = u.hostname;
-  // 路径里先找已知域名（WebVPN 编码后仍会保留原始主机名）
-  const path = decodeURIComponent(u.pathname || '');
+  const host = u.hostname.toLowerCase();
+  // Direct academic hosts take priority; a path mentioning another host cannot change the site.
+  if (KNOWN_HOSTS.some((known) => host === known || host.endsWith('.' + known))) return host;
+  if (!/^webvpn[.-]/i.test(host)) return host;
+  let path = u.pathname || '';
+  // WebVPN supports literal and URL-encoded target paths; malformed escapes must not stop boot.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const decoded = decodeURIComponent(path);
+      if (decoded === path) break;
+      path = decoded;
+    } catch (_) { break; }
+  }
   for (const kh of KNOWN_HOSTS) {
-    if (path.includes(kh)) return kh;
+    const escaped = kh.replace(/\./g, '\\.');
+    if (new RegExp('(?:^|/)' + escaped + '(?=[:/]|$)', 'i').test(path)) return kh;
   }
   return host;
 }

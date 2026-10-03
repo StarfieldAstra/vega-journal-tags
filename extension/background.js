@@ -7,9 +7,16 @@
  *     需依赖 web_accessible_resources，且可能受目标站点 CSP 限制；由 SW 代读可绕开。
  */
 
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     chrome.tabs.create({ url: chrome.runtime.getURL('popup/guide.html') });
+  }
+  // Public v1.0.x could not select the school source; enable the newly available source once.
+  if (details.reason === 'update' && /^1\.0\./.test(details.previousVersion || '')) {
+    const settings = await chrome.storage.local.get('dbs');
+    if (Array.isArray(settings.dbs) && !settings.dbs.includes('sxufe')) {
+      await chrome.storage.local.set({dbs: [...settings.dbs, 'sxufe']});
+    }
   }
 });
 
@@ -21,7 +28,7 @@ async function sendSettingsMessage(tabId, message) {
   const tab = await chrome.tabs.get(tabId);
   const pending = tab.url && tab.url.startsWith(chrome.runtime.getURL(''))
     ? chrome.runtime.sendMessage({type: 'vegaSettingsForOwnPage', tabId, message})
-    : chrome.tabs.sendMessage(tabId, {...message, tabId});
+    : chrome.tabs.sendMessage(tabId, {...message, tabId}, {frameId: 0});
   let timer;
   try {
     return await Promise.race([pending, new Promise((_, reject) => {

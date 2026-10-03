@@ -1,4 +1,4 @@
-"""Validate and package the standalone public edition; no browser installation changes."""
+"""Build the single edition with school grades; runtime and source are verified."""
 from pathlib import Path
 import argparse
 import hashlib
@@ -10,87 +10,69 @@ import zipfile
 
 SOURCE = Path(__file__).resolve().parent
 EXTENSION = SOURCE / 'extension'
-parser = argparse.ArgumentParser()
-parser.add_argument('--output-dir', type=Path, default=SOURCE / 'release')
-OUT = parser.parse_args().output_dir.resolve()
-if OUT == SOURCE:
-    raise RuntimeError('Output directory must differ from source directory')
-OUT.mkdir(parents=True, exist_ok=True)
-manifest = json.loads((EXTENSION / 'manifest.json').read_text(encoding='utf-8'))
-version = manifest['version']
-if not re.fullmatch(r'\d+\.\d+\.\d+', version):
-    raise RuntimeError('Invalid release version')
-package = OUT / ('vega-journal-tags-v' + version + '.zip')
-source_package = OUT / ('vega-journal-tags-source-v' + version + '.zip')
-if package.exists() or source_package.exists():
-    raise RuntimeError('Archive already exists; increase the version rather than overwrite it.')
-if manifest.get('permissions') != ['storage', 'activeTab', 'scripting']:
-    raise RuntimeError('Unexpected extension permissions')
-if 'default_popup' in manifest['action']:
-    raise RuntimeError('Native toolbar popup must stay disabled')
-refs = [manifest['background']['service_worker'], 'popup/popup.html', 'settings-panel.js']
-for entry in manifest['content_scripts']:
-    refs.extend(entry.get('js', []))
-    refs.extend(entry.get('css', []))
-for entry in manifest['web_accessible_resources']:
-    refs.extend(entry['resources'])
-for rel in refs:
-    file = (EXTENSION / rel).resolve()
-    if EXTENSION.resolve() not in file.parents or not file.is_file():
-        raise RuntimeError('Missing or invalid extension resource: ' + rel)
-for file in EXTENSION.rglob('*'):
-    if file.is_symlink():
-        raise RuntimeError('Unexpected extension symlink')
-    if file.suffix == '.js':
-        subprocess.run(['node', '--check', str(file)], check=True)
-data = json.loads((EXTENSION / 'data/journals.json').read_text(encoding='utf-8'))
-allowed_fields = {'n', 'i', 'j', 'c', 'd', 'b', 'z', 'M', 'W', 'T', 'w', 'y'}
-allowed_sources = {'cssci', 'cscd', 'beike', 'cas', 'warning'}
-if set(data['meta']['sources']) != allowed_sources:
-    raise RuntimeError('Unexpected dataset source')
-for record in data['journals'].values():
-    if set(record) - allowed_fields:
-        raise RuntimeError('Unexpected dataset field')
-subprocess.run(['node', str(SOURCE / 'test_judge.js')], check=True)
+SOURCE_NAMES = ['README.md', 'INSTALL.md', 'PRIVACY.md', 'RELEASE_NOTES.md',
+                'HANDOVER.md', 'LICENSE', 'validate.js', 'test_judge.js',
+                'test_sites.js', 'test_extension.js', 'test_settings.js',
+                'test_background.js', 'build_release.py', 'build_release.js',
+                'tools/build_themes.js']
 
-direct = OUT / '直接可用版'
-if direct.exists() and (not direct.is_dir() or direct.is_symlink()):
-    raise RuntimeError('Invalid distribution directory')
-extension_files = [file for file in EXTENSION.rglob('*') if file.is_file()]
-if direct.exists():
-    if any(file.is_symlink() for file in direct.rglob('*')):
-        raise RuntimeError('Unexpected distribution symlink')
-    extras = {file.relative_to(direct) for file in direct.rglob('*') if file.is_file()} - {file.relative_to(EXTENSION) for file in extension_files}
-    if extras:
-        raise RuntimeError('Unreviewed files in distribution directory')
-for file in extension_files:
-    rel = file.relative_to(EXTENSION)
-    dest = direct / rel
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(file, dest)
-    if dest.read_bytes() != file.read_bytes():
-        raise RuntimeError('Copy mismatch: ' + str(rel))
-with zipfile.ZipFile(package, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
-    for file in extension_files:
-        archive.write(file, file.relative_to(EXTENSION).as_posix())
-with zipfile.ZipFile(package) as archive:
-    if 'manifest.json' not in archive.namelist():
-        raise RuntimeError('Manifest missing from archive root')
-    for file in extension_files:
-        rel = file.relative_to(EXTENSION).as_posix()
-        if archive.read(rel) != file.read_bytes():
-            raise RuntimeError('Archive mismatch: ' + rel)
-with zipfile.ZipFile(source_package, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
-    for file in SOURCE.rglob('*'):
-        if not file.is_file() or any(part in file.parts for part in ['__pycache__', '.git']):
-            continue
-        if OUT.is_relative_to(SOURCE) and file.is_relative_to(OUT):
-            continue
-        archive.write(file, file.relative_to(SOURCE).as_posix())
-sum_lines = []
-for file in [package, source_package]:
-    digest = hashlib.sha256(file.read_bytes()).hexdigest()
-    sum_lines.append(digest + '  ' + file.name)
-(OUT / 'SHA256SUMS.txt').write_text('\n'.join(sum_lines) + '\n', encoding='utf-8')
-print('Packaged public extension and source; verified', len(extension_files), 'installation files.')
-print('\n'.join(sum_lines))
+def selected_source_files():
+    return sorted([file for file in EXTENSION.rglob('*') if file.is_file()] +
+                  [SOURCE / name for name in SOURCE_NAMES], key=lambda file: file.as_posix())
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output-dir', type=Path, default=SOURCE / 'release')
+    out = parser.parse_args().output_dir.resolve()
+    if out == SOURCE or out.is_relative_to(EXTENSION):
+        raise RuntimeError('Output must not overwrite source or extension')
+    out.mkdir(parents=True, exist_ok=True)
+    manifest = json.loads((EXTENSION / 'manifest.json').read_text(encoding='utf-8'))
+    version = manifest['version']
+    assert re.fullmatch(r'\d+\.\d+\.\d+', version)
+    packages = [out / f'vega-journal-tags-v{version}.zip',
+                out / f'vega-journal-tags-source-v{version}.zip']
+    if any(package.exists() for package in packages):
+        raise RuntimeError('Version archives already exist; increase the version or select a new output directory.')
+    assert manifest['permissions'] == ['storage', 'activeTab', 'scripting']
+    assert 'default_popup' not in manifest['action']
+    data = json.loads((EXTENSION / 'data/journals.json').read_text(encoding='utf-8'))
+    assert data['meta']['version'] == version
+    assert set(data['meta']['sources']) == {'cssci', 'cscd', 'beike', 'cas', 'warning', 'sxufe'}
+    allowed = {'n', 'i', 'j', 'c', 'd', 'b', 'z', 'M', 'W', 'T', 'w', 'y', 's'}
+    assert all(not (set(record) - allowed) for record in data['journals'].values())
+    assert len(data['journals']) == 24354
+    assert sum(bool(record.get('s')) for record in data['journals'].values()) == 2261
+    for name in ['validate.js', 'test_judge.js', 'test_sites.js', 'test_background.js']:
+        subprocess.run(['node', str(SOURCE / name)], check=True)
+    runtime_files = sorted([file for file in EXTENSION.rglob('*') if file.is_file()])
+    source_files = selected_source_files()
+    assert all(file.is_file() and not file.is_symlink() for file in source_files)
+    direct = out / '直接可用版'
+    if direct.exists():
+        assert direct.is_dir() and not direct.is_symlink()
+        assert not any(file.is_symlink() for file in direct.rglob('*'))
+        extras = {file.relative_to(direct) for file in direct.rglob('*') if file.is_file()} - {file.relative_to(EXTENSION) for file in runtime_files}
+        assert not extras, 'Unreviewed files in distribution'
+    for file in runtime_files:
+        if file.suffix == '.js':
+            subprocess.run(['node', '--check', str(file)], check=True)
+        dest = direct / file.relative_to(EXTENSION)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(file, dest)
+        assert dest.read_bytes() == file.read_bytes()
+    for package, files, base in [(packages[0], runtime_files, EXTENSION), (packages[1], source_files, SOURCE)]:
+        with zipfile.ZipFile(package, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
+            for file in files:
+                archive.write(file, file.relative_to(base).as_posix())
+        with zipfile.ZipFile(package) as archive:
+            assert len(archive.namelist()) == len(files)
+            for file in files:
+                assert archive.read(file.relative_to(base).as_posix()) == file.read_bytes()
+    sums = '\n'.join(hashlib.sha256(file.read_bytes()).hexdigest() + '  ' + file.name for file in packages) + '\n'
+    (out / 'SHA256SUMS.txt').write_text(sums, encoding='utf-8')
+    print('Unified school-grade edition packaged and verified:', version, len(runtime_files), 'runtime files.')
+    print(sums, end='')
+
+if __name__ == '__main__':
+    main()

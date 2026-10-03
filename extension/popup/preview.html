@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>popup preview</title></head>
+<body>
+<script>
+/**
+ * 仅用于在普通网页里预览弹窗（扩展外打开时没有 chrome.* API）。
+ * mock 只覆盖 popup.js 用到的那几个入口，返回的数据与真实 service worker 同构。
+ */
+window.chrome = {
+  storage: {
+    local: {
+      _d: (() => {
+        const h = (location.hash.match(/theme=([a-z]+)/) || [])[1];
+        const base = { enabled: true };
+        if (h) base.theme = h;
+        else base.theme = 'nord';
+        // 自定义模式演示：给一组与出厂色不同的色值，便于截图对比
+        if (h === 'custom') {
+          base.custom = { cssci: '#7C5CFF', cscd: '#0FA3A3', beike: '#C86BFA', cas1: '#E5484D', cas2: '#E8930C', cas3: '#18A999', cas4: '#6B7280', warning: '#E5484D' };
+        }
+        return base;
+      })(),
+      get(defaults, cb) { cb(Object.assign({}, defaults, this._d)); },
+      // 真实扩展在写入成功后会回调 —— mock 也要回调，否则选择器不会刷新；
+      // 同时真的记下来，模拟「打开的标签页监听 storage.onChanged 换装」的效果
+      set(obj, cb) { Object.assign(this._d, obj); if (cb) cb(); },
+    },
+    onChanged: { addListener: () => {} },
+  },
+  runtime: {
+    sendMessage: (msg, cb) => {
+      if (cb && /readData/.test(msg.type)) {
+        cb({ ok: true, data: { meta: { version: '1.1.0', built: 'preview', counts: {
+          cssciSource: 668, cssciExt: 259, cscdCore: 1106, cscdExt: 365,
+          beike: 1983, cas: 21772, casTop: 1789, warning: 134, total: 24354 } } } });
+      } else if (cb) cb({ ok: true, site: 'cnki', diag: null });
+    },
+    lastError: null,
+  },
+  tabs: {
+    query: (q, cb) => cb([]),
+    sendMessage: (id, msg, cb) => { if (cb) cb(null); },
+  },
+};
+fetch('popup.html')
+  .then((r) => r.text())
+  .then((html) => {
+    // 纯本地静态服务没有强缓存头，Chromium 会吃内存缓存 —— 加个 buster 保证
+    // 预览到的永远是磁盘上的最新版本。
+    const bust = '?v=' + Date.now();
+    html = html.replace(/(script src="[^"]+?")(\s*><\/script>)/g, '$1' + bust + '$2');
+    document.open();
+    document.write(html);
+    document.close();
+  });
+</script>
+</body>
+</html>
