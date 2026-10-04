@@ -7,3 +7,6 @@
 更新时同步 manifest 与数据 meta 版本；保留全部学校字段、推断提示、手动级别持久化。不要恢复 action.default_popup，浏览器原生白色矩形外壳无法由内部 CSS 裁剪。WebVPN 域名权限、all_frames 注入和 web_accessible_resources 的数据匹配必须共同更新。
 
 发布前运行判定、站点路径、实际 MV3 升降级/WebVPN 和设置面板测试。使用模拟网页的测试应写明验证边界，不宣称已经登录学校 WebVPN。构建安装包与源码包，核对 SHA256 后发布 GitHub。
+
+
+2026-10-04：GitHub 账号 ID 已改为 `StarfieldAstra`（账号数字 ID 259543123 保持一致）。仓库为 https://github.com/StarfieldAstra/vega-journal-tags。后续发布脚本、仓库远程地址和新制作的宣传片均使用新账号 ID；旧版本历史与原视频保留。

@@ -2,7 +2,7 @@
 
 当前版本 **v1.3.0**。
 
-[下载安装包](https://github.com/xby0328/vega-journal-tags/releases/latest/download/vega-journal-tags-v1.3.0.zip) · [发布页](https://github.com/xby0328/vega-journal-tags/releases/latest)
+[下载安装包](https://github.com/StarfieldAstra/vega-journal-tags/releases/latest/download/vega-journal-tags-v1.3.0.zip) · [发布页](https://github.com/StarfieldAstra/vega-journal-tags/releases/latest)
 
 ![统一版圆角设置与学校标签](assets/vega-public.png)
 
